@@ -1,0 +1,54 @@
+{
+  "output": {
+    "score": 4.375,
+    "label": 1
+  },
+  "plan": {
+    "plan_id": "259e7e70c47dce1e",
+    "candidate": {
+      "backend": "cpu-python",
+      "precision": "fp64",
+      "local": true,
+      "preference_rank": 0
+    },
+    "artifact_id": "1cf26609a97714cc27a8190497a500b83379af95d29002a632f77bbd8980c58c",
+    "reason": "STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE"
+  },
+  "candidates": [
+    {
+      "backend": "cpu-python",
+      "precision": "fp64",
+      "local": true,
+      "preference_rank": 0
+    },
+    {
+      "backend": "cpu-python",
+      "precision": "fp32",
+      "local": true,
+      "preference_rank": 1
+    }
+  ],
+  "capabilities": {
+    "name": "cpu-python",
+    "architecture": "x86_64",
+    "logical_cores": 4,
+    "runtime": "3.12.3",
+    "precisions": [
+      "fp32",
+      "fp64"
+    ],
+    "local": true
+  },
+  "metrics": {
+    "request_id": "c639ccd3-0876-4f3b-ad12-1e5dc771aa0c",
+    "success": true,
+    "fallback": false,
+    "model_id": "linear-demo-v1",
+    "plan_id": "259e7e70c47dce1e",
+    "artifact_id": "1cf26609a97714cc27a8190497a500b83379af95d29002a632f77bbd8980c58c",
+    "backend": "cpu-python",
+    "precision": "fp64",
+    "inference_ms": 0.008473,
+    "runtime_ms_excluding_telemetry_write": 0.153681
+  }
+}

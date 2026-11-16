@@ -1,0 +1,17 @@
+test_artifact_integrity (test_aacl.ProofTests.test_artifact_integrity) ... ok
+test_deterministic_plan (test_aacl.ProofTests.test_deterministic_plan) ... ok
+test_fp32_path (test_aacl.ProofTests.test_fp32_path) ... ok
+test_http (test_aacl.ProofTests.test_http) ... ok
+test_invalid_inputs (test_aacl.ProofTests.test_invalid_inputs) ... ok
+test_negative_class (test_aacl.ProofTests.test_negative_class) ... ok
+test_no_valid_plan (test_aacl.ProofTests.test_no_valid_plan) ... ok
+test_policy_denies_remote (test_aacl.ProofTests.test_policy_denies_remote) ... ok
+test_reference_result (test_aacl.ProofTests.test_reference_result) ... ok
+test_telemetry_without_input (test_aacl.ProofTests.test_telemetry_without_input) ... ok
+test_unknown_model (test_aacl.ProofTests.test_unknown_model) ... ok
+test_unsupported_constraint (test_aacl.ProofTests.test_unsupported_constraint) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.039s
+
+OK

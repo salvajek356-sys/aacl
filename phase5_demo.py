@@ -111,8 +111,16 @@ def main():
                 failures.append(f"cross-check {raw} {precision}: {exc!r}")
                 print(f"  {spec.model_id} {precision}: FAILED: {exc!r}")
                 continue
-            cpu_scores = cpu_out.get("scores", [cpu_out["score"]])
-            gpu_scores = gpu_out.get("scores", [gpu_out["score"]])
+            # (Fixed 2026-11-17: dict.get's default is evaluated
+            # eagerly, so [out["score"]] raised KeyError for the iris
+            # model's scores-shaped output before .get could answer —
+            # the same latent bug the agreement test carried, found
+            # on the demo's first GPU run, after the two demo-model
+            # cross-checks above had already agreed exactly.)
+            cpu_scores = (cpu_out["scores"] if "scores" in cpu_out
+                          else [cpu_out["score"]])
+            gpu_scores = (gpu_out["scores"] if "scores" in gpu_out
+                          else [gpu_out["score"]])
             worst = max(abs(g - c) for g, c in zip(gpu_scores, cpu_scores))
             agree = (gpu_out["label"] == cpu_out["label"]
                      and worst <= SCORE_TOLERANCE)

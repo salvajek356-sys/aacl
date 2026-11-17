@@ -24,6 +24,17 @@ Honesty rules, matching the rest of the runtime:
   imports, a device answers, and a tiny matmul at each advertised
   precision genuinely executes on it. The probe result is cached: one
   snapshot per process, like the CPU profile's.
+- The probe runs in a subprocess — this module, run as __main__ —
+  never in the host process. A device runtime can fail in ways no
+  exception can catch: on 2026-11-17 the Strix Halo's torch build
+  segfaulted inside its bundled HSA runtime on the first dispatched
+  kernel (the runtime could not even fail cleanly — queue creation
+  failed against the kernel, and its own cleanup path crashed), and
+  the in-process probe took the whole runtime, CPU path included,
+  down with it. In a child process that same crash is just an exit
+  status: the GPU is honestly absent, and the runtime goes on serving
+  the CPU. A backend that crashes on contact degrades; it does not
+  get to be fatal.
 - The backend advertises only the precisions the probe executed —
   fp32/fp64 as the device supports them. It does not claim int8: no
   integer artifact runs here, so no int8 candidate is ever generated
@@ -35,6 +46,12 @@ Honesty rules, matching the rest of the runtime:
   *its* discipline, not reproduced here; cross-backend agreement is
   checked by the Phase 5 demo within fp32 tolerance, labels exactly.
 """
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 from ..core.capabilities import BackendProfile
 from ..core.workload import Rejection
 from ..models.registry import (artifact_id, get_model, source_digest,
@@ -43,6 +60,16 @@ from .base import CompletedHandle
 
 _PROFILE_UNSET = object()
 _profile_cache = _PROFILE_UNSET
+
+# The child gets time to import torch, initialize a device runtime,
+# and execute two tiny matmuls. Sixty seconds is generous on a healthy
+# machine and bounded on a broken one: a hung probe is an absent GPU,
+# never a hung runtime.
+PROBE_TIMEOUT_SECONDS = 60
+
+_PROBE_KEYS = {"name", "architecture", "logical_cores", "runtime",
+               "precisions", "local", "total_memory_bytes",
+               "available_memory_bytes", "max_cache_bytes"}
 
 
 def _torch():
@@ -54,7 +81,10 @@ def _torch():
 def probe_gpu_profile():
     """The GPU's BackendProfile, discovered by probing the device — or
     None, when there is honestly no GPU to describe: torch absent, no
-    device answering, or no precision genuinely executing on it.
+    device answering, or no precision genuinely executing on it. The
+    probing itself happens in a child process (see _run_probe_child):
+    a child that dies by signal, hangs past the timeout, or answers
+    nonsense is the same discovery result stated a different way.
 
     Cached after the first probe: discovery is a single deterministic
     snapshot per process, as with the CPU profile.
@@ -62,11 +92,75 @@ def probe_gpu_profile():
     global _profile_cache
     if _profile_cache is not _PROFILE_UNSET:
         return _profile_cache
-    _profile_cache = _probe()
+    _profile_cache = _profile_from_probe(_run_probe_child())
     return _profile_cache
 
 
-def _probe():
+def _run_probe_child():
+    """Run this module as a child process and read its one-line JSON
+    answer. The child is launched with this package's root on its
+    PYTHONPATH, so it finds the same code the parent imported wherever
+    the parent was launched from. Every failure mode — nonzero or
+    signal exit, timeout, an unparseable line — returns None: no
+    probe result, so no GPU."""
+    env = dict(os.environ)
+    root = str(Path(__file__).resolve().parents[2])
+    pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (root if not pythonpath
+                         else root + os.pathsep + pythonpath)
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-m", "aacl.backends.gpu"],
+            capture_output=True, text=True,
+            timeout=PROBE_TIMEOUT_SECONDS, env=env)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    lines = [line for line in completed.stdout.splitlines() if line.strip()]
+    if not lines:
+        return None
+    try:
+        return json.loads(lines[-1])
+    except ValueError:
+        return None
+
+
+def _profile_from_probe(data):
+    """The child's JSON, held to the probe's own standard before it
+    becomes a profile: the full key set, a GPU name, and a non-empty
+    precision list drawn from the floating-point pair. A child
+    claiming int8 — or anything else this backend never advertised —
+    is refused like any other impossible claim."""
+    if not isinstance(data, dict) or set(data) != _PROBE_KEYS:
+        return None
+    if data["name"] not in ("gpu-rocm", "gpu-cuda"):
+        return None
+    precisions = data["precisions"]
+    if (not isinstance(precisions, list) or not precisions
+            or not set(precisions) <= {"fp32", "fp64"}):
+        return None
+    try:
+        return BackendProfile(
+            name=data["name"],
+            architecture=str(data["architecture"]),
+            logical_cores=int(data["logical_cores"]),
+            runtime=str(data["runtime"]),
+            precisions=tuple(precisions),
+            local=bool(data["local"]),
+            total_memory_bytes=int(data["total_memory_bytes"]),
+            available_memory_bytes=int(data["available_memory_bytes"]),
+            max_cache_bytes=int(data["max_cache_bytes"]),
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _probe_device():
+    """The probe itself — executed only in the child process (see
+    _probe_child_main). Returns the profile as a JSON-safe dict, or
+    None when there is honestly no GPU to describe: torch absent, no
+    device answering, or no precision genuinely executing on it."""
     try:
         torch = _torch()
     except Exception:
@@ -89,19 +183,28 @@ def _probe():
             return None
         hip = getattr(torch.version, "hip", None)
         total = int(props.total_memory)
-        return BackendProfile(
-            name="gpu-rocm" if hip else "gpu-cuda",
-            architecture=str(props.name),
-            logical_cores=int(props.multi_processor_count),
-            runtime=str(torch.__version__),
-            precisions=tuple(precisions),
-            local=True,
-            total_memory_bytes=total,
-            available_memory_bytes=total - int(torch.cuda.memory_allocated(0)),
-            max_cache_bytes=total // 4,
-        )
+        return {
+            "name": "gpu-rocm" if hip else "gpu-cuda",
+            "architecture": str(props.name),
+            "logical_cores": int(props.multi_processor_count),
+            "runtime": str(torch.__version__),
+            "precisions": precisions,
+            "local": True,
+            "total_memory_bytes": total,
+            "available_memory_bytes":
+                total - int(torch.cuda.memory_allocated(0)),
+            "max_cache_bytes": total // 4,
+        }
     except Exception:
         return None
+
+
+def _probe_child_main():
+    """The child's whole job: probe, print one line of JSON, exit. If
+    the device runtime kills the process natively, the line never
+    prints and the parent reads the exit status instead — which is
+    the point of being a child."""
+    print(json.dumps(_probe_device()))
 
 
 class GPUBackend:
@@ -169,3 +272,9 @@ class GPUBackend:
                                    device=device)
             score = (torch.dot(weights, inputs) + float(model["bias"])).item()
         return {"score": score, "label": int(score >= 0)}
+
+
+if __name__ == "__main__":
+    # The discovery probe's child process: `python -m aacl.backends.gpu`
+    # probes the device and prints the result as one line of JSON.
+    _probe_child_main()

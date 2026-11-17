@@ -1102,8 +1102,16 @@ class Phase5GPUTests(unittest.TestCase):
                 # CPU's step-by-step rounding is its own discipline,
                 # not the device's.
                 self.assertEqual(gpu_out["label"], cpu_out["label"])
-                cpu_scores = cpu_out.get("scores", [cpu_out["score"]])
-                gpu_scores = gpu_out.get("scores", [gpu_out["score"]])
+                # Fixed 2026-11-17, on this test's first-ever run (the
+                # Strix, ROCm 7.14.1): dict.get's default is evaluated
+                # eagerly, so [out["score"]] raised KeyError for the
+                # iris model's scores-shaped output before .get could
+                # answer. A bug in the test, not in either backend —
+                # the labels above had already agreed. Branch instead.
+                cpu_scores = (cpu_out["scores"] if "scores" in cpu_out
+                              else [cpu_out["score"]])
+                gpu_scores = (gpu_out["scores"] if "scores" in gpu_out
+                              else [gpu_out["score"]])
                 for got, want in zip(gpu_scores, cpu_scores):
                     self.assertAlmostEqual(got, want, delta=1e-5)
 
@@ -1137,6 +1145,129 @@ class Phase5GPUTests(unittest.TestCase):
         plain = runtime.infer({"input": [1, 2, 3, 4]})
         self.assertEqual(plain["plan"]["candidate"]["backend"], "cpu-python")
         self.assertEqual(plain["output"], {"score": 4.375, "label": 1})
+
+
+class Phase5ProbeIsolationTests(unittest.TestCase):
+    """The subprocess probe (Phase 5 amendment, 2026-11-17): discovery
+    must survive a backend whose device runtime crashes natively.
+
+    The Strix Halo session supplied the evidence. The machine's torch
+    build segfaulted inside its bundled HSA runtime on the first
+    dispatched kernel, and the in-process probe took the whole
+    runtime — CPU path included — down with it. These tests stand in
+    for that machine with a fake child process: killed by a signal,
+    hung past the timeout, answering garbage, answering an impossible
+    claim, and answering honestly. Each of the first four is the same
+    discovery result — no GPU — and the runtime must serve the CPU
+    through all of them. No earlier test is modified."""
+
+    PROFILE = {
+        "name": "gpu-rocm",
+        "architecture": "AMD Radeon 8060S Graphics",
+        "logical_cores": 40,
+        "runtime": "2.12.0+rocm7.1",
+        "precisions": ["fp64", "fp32"],
+        "local": True,
+        "total_memory_bytes": 1024,
+        "available_memory_bytes": 512,
+        "max_cache_bytes": 256,
+    }
+
+    def setUp(self):
+        import subprocess
+        import sys
+        from unittest import mock
+
+        from aacl.backends import discovery
+        from aacl.backends import gpu
+        self.subprocess = subprocess
+        self.sys = sys
+        self.mock = mock
+        self.gpu = gpu
+        self.discovery = discovery
+        self._saved_cache = gpu._profile_cache
+        self._saved_snapshot = discovery._SNAPSHOT
+        gpu._profile_cache = gpu._PROFILE_UNSET
+        discovery._SNAPSHOT = None
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = str(Path(self.tmp.name) / "events.jsonl")
+
+    def tearDown(self):
+        self.gpu._profile_cache = self._saved_cache
+        self.discovery._SNAPSHOT = self._saved_snapshot
+        self.tmp.cleanup()
+
+    def _child(self, returncode=0, stdout=""):
+        """Patch the probe's subprocess call to a fake child with the
+        given exit status and output."""
+        completed = self.subprocess.CompletedProcess(
+            args=["probe"], returncode=returncode,
+            stdout=stdout, stderr="")
+        patcher = self.mock.patch.object(
+            self.gpu.subprocess, "run", return_value=completed)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_child_killed_by_a_signal_means_no_gpu(self):
+        # Exit -11 is what the parent sees when the child dies of
+        # SIGSEGV inside a broken device runtime — the Strix result.
+        self._child(returncode=-11)
+        self.assertIsNone(self.gpu.probe_gpu_profile())
+        self.assertIsNone(self.gpu.GPUBackend.discover())
+
+    def test_child_hanging_past_the_timeout_means_no_gpu(self):
+        patcher = self.mock.patch.object(
+            self.gpu.subprocess, "run",
+            side_effect=self.subprocess.TimeoutExpired(
+                cmd=["probe"], timeout=self.gpu.PROBE_TIMEOUT_SECONDS))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.assertIsNone(self.gpu.probe_gpu_profile())
+
+    def test_child_answering_garbage_means_no_gpu(self):
+        self._child(stdout="the device is fine, trust me\n")
+        self.assertIsNone(self.gpu.probe_gpu_profile())
+
+    def test_child_claiming_int8_is_refused(self):
+        # A profile is a claim, and the probe's answer is held to the
+        # same standard as any other: this backend never advertises
+        # int8, so a child saying otherwise is not believed.
+        claim = dict(self.PROFILE, precisions=["int8"])
+        self._child(stdout=json.dumps(claim) + "\n")
+        self.assertIsNone(self.gpu.probe_gpu_profile())
+
+    def test_child_answering_honestly_builds_the_profile(self):
+        self._child(stdout=json.dumps(self.PROFILE) + "\n")
+        profile = self.gpu.probe_gpu_profile()
+        self.assertEqual(profile.name, "gpu-rocm")
+        self.assertEqual(profile.precisions, ("fp64", "fp32"))
+        self.assertEqual(profile.total_memory_bytes, 1024)
+        self.assertEqual(profile.max_cache_bytes, 256)
+
+    def test_the_runtime_serves_the_cpu_through_a_crashing_probe(self):
+        # The amendment's whole point, in the Strix's own scenario:
+        # discovery's child dies by signal, and a request still gets
+        # the CPU reference answer, from a CPU-only registry.
+        self._child(returncode=-11)
+        self.assertEqual(
+            [p.name for p in self.discovery.registered_profiles()],
+            ["cpu-python"])
+        result = Runtime(self.path).infer({"input": [1, 2, 3, 4]})
+        self.assertEqual(result["output"], {"score": 4.375, "label": 1})
+        self.assertEqual(result["plan"]["candidate"]["backend"],
+                         "cpu-python")
+
+    def test_the_real_child_answers_cleanly_on_this_machine(self):
+        # No fakes: run the child exactly as discovery runs it. On a
+        # machine with no working device it must exit 0 and answer
+        # null — never die, never hang the suite.
+        completed = self.subprocess.run(
+            [self.sys.executable, "-m", "aacl.backends.gpu"],
+            capture_output=True, text=True, timeout=120)
+        self.assertEqual(completed.returncode, 0)
+        answer = json.loads(completed.stdout.strip().splitlines()[-1])
+        if answer is not None:
+            self.assertEqual(set(answer), self.gpu._PROBE_KEYS)
 
 
 if __name__ == "__main__":

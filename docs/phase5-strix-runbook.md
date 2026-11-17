@@ -143,3 +143,50 @@ With those five, the phase can be closed from the other side: guide
 and README updated to record the verdict — whichever way it lands —
 and the record published. Until then, Phase 5's status is exactly:
 **built, not yet run on GPU hardware.**
+
+## Addendum — 2026-11-17: the session ran
+
+The session above was run on 2026-11-17, with two packaging
+deviations from the script as written, recorded here rather than
+smoothed over: the Phase 5 commit was resolved on GitHub's main
+directly (the snapshot push carries no per-phase commit message to
+grep for), and Step 3's audit — which diffs against the local
+Phase 4 commit — was replaced on the clone by a hash check of the
+32 protected files against their Phase 4 blob SHAs, with identical
+substance for the protected set.
+
+Results against the criteria stated in advance:
+
+1. Suite green with GPU tests running — **NOT MET.** The suite died
+   silently: discovery's in-process probe crashed the process.
+2. Protected files unchanged — **MET** on the hardware, by the hash
+   check: 32/32 byte-identical to Phase 4.
+3. Demo verdict PASS — **NOT MET.** The demo segfaulted in the probe.
+4. prove.py precision unchanged — **NOT REACHED** (the same crash).
+
+Diagnosis (Phases 5.1A–5.1F; controlled, read-only): torch-only
+fp32 and fp64 device snippets segfault identically — the fault is
+not ACCL's and not precision-specific. The same ctypes memory test
+(enumerate, allocate, memset, synchronize, free) passes completely
+against the system ROCm runtime and dies at hipMemset against the
+wheel's bundled HIP runtime. A GDB backtrace places the crash
+inside the wheel's bundled HSA runtime: queue creation fails
+against the system kernel, and its cleanup path
+(ReleaseQueueMainScratch) segfaults on uninitialized state — the
+runtime could not even fail cleanly. Hardware, kernel driver, and
+system ROCm are exonerated by the controls.
+
+**Verdict: NOT a pass.** The structural leak test passed on
+hardware; execution is untestable on this torch build — an
+environment finding, not a leak.
+
+Amendment (same day): the discovery probe now runs in a subprocess
+(`aacl/backends/gpu.py`, run as `__main__`), so a backend whose
+runtime crashes on contact degrades to absent instead of killing
+the host. Expected behavior of a re-run on the Strix as it stands:
+the suite completes with the GPU tests skipped (the probe child
+dies; the GPU is honestly absent), the demo completes CPU-only, and
+prove.py runs — the runtime surviving a broken device runtime is
+the amendment's own test. Criteria 1, 3, and 4 in their original
+form still wait on a torch environment on the Strix that can
+dispatch a kernel.

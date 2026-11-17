@@ -189,9 +189,30 @@ This is a young project, and this guide will not pretend otherwise.
   at least once, the two backends' answers agreeing. Until that
   session happens and its output is pasted back, the honest status of
   Phase 5 is: built, audited, and unproven where it counts.
+  *The session has since happened, and the sentence updates rather
+  than stands.* On the Strix the exam's structural half passed
+  outright — every protected file byte-identical on the real
+  machine. The execution half never got to speak: the machine's
+  PyTorch build crashed inside its own bundled runtime on the very
+  first kernel, in three lines of pure PyTorch with none of this
+  code present, and a controlled diagnosis — the same memory test
+  against the system ROCm runtime, which passed completely — put
+  the fault in the wheel's HSA layer, below the backend line
+  entirely. Recorded as what it is: an environment finding, not a
+  leak and not a pass. One flaw *was* this project's, and it is
+  fixed: discovery once probed in-process, so a backend that
+  crashed on contact killed the runtime it was only visiting. The
+  probe now runs in a subprocess; on that same broken machine,
+  discovery today reports no GPU and the CPU serves on — which is,
+  in the end, the behavior a compatibility layer exists to have.
+  What remains unproven is narrower than it was: the backend
+  executing on hardware, under a torch build that can dispatch a
+  kernel at all.
 
 What it does not do, yet: run on a GPU — the backend is built and
-audited, and its exam on real hardware is still ahead of it — run
+audited; its first hardware session found the machine's torch build
+unable to dispatch a kernel, so the execution exam is still ahead
+of it — run
 anything larger than a flower classifier, or arbitrate between two
 agents who both want the same chip.
 What it will never do, by design: let the thing submitting the work decide

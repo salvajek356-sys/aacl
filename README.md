@@ -112,7 +112,9 @@ changed behavior — the Phase 1 targeted fixture and three others — with
 reasons recorded in place) and the precision evidence is unchanged:
 max abs error 1.538403431311508e-06, 0 label disagreements.
 
-**Phase 5 built (2026-11-17) — the GPU run has not happened yet.** The
+**Phase 5 built (2026-11-17); the Strix session ran the same day —
+structural pass, execution blocked by the machine's torch build
+(recorded at the end of this section).** The
 second backend: `backends/gpu.py` executes both registered models with
 PyTorch on the accelerator (ROCm exposes the device through torch's
 CUDA surface; the backend names itself `gpu-rocm` or `gpu-cuda` for
@@ -136,14 +138,31 @@ to Phase 4 — not as a claim but as a check: `phase5_diff_audit.py`
 diffs the tree against the Phase 4 commit and fails outside a minimal
 allow-list (it passes). `phase5_demo.py` runs the fixed request set
 and cross-checks CPU vs GPU outputs; on a GPU-less machine it reports
-PARTIAL, never PASS. 53/53 tests pass here (44 prior — three adapted
-to count relative to the registry, reasons in place — 6 new Phase 5
-tests, and 3 GPU-present tests that skip cleanly without a device).
-**What remains unverified, plainly: the backend has never executed on
-GPU hardware.** The session that settles it — suite green on the
-Strix Halo with the GPU tests running, audit passing, the planner
-choosing each backend, cross-checks agreeing, criteria stated in
-advance — is scripted in `docs/phase5-strix-runbook.md`.
+PARTIAL, never PASS. 60/60 tests pass here (44 prior — three adapted
+to count relative to the registry, reasons in place — 6 Phase 5
+tests, 3 GPU-present tests that skip cleanly without a device, and 7
+amendment tests below).
+
+**The Strix session (2026-11-17), recorded plainly.** The structural
+half passed on the hardware: 32/32 protected files byte-identical to
+Phase 4. The execution half could not run: the machine's torch build
+(2.12.0+rocm7.1, in the system python's user site) segfaults on the
+first dispatched device kernel — in pure torch, with no ACCL code
+present — and controlled follow-up diagnosis isolated the fault to
+the wheel's bundled HSA runtime, whose queue creation fails against
+the system kernel and whose cleanup path then crashes; the identical
+memory test against the system ROCm runtime passes completely. An
+environment finding, recorded as one: not a leak, and not a pass.
+The session also exposed an ACCL-side flaw — discovery probed
+in-process, so the crashing backend took the whole runtime down with
+it — fixed the same day by amendment: the probe now runs in a
+subprocess (`python -m aacl.backends.gpu`), and a backend that
+crashes on contact degrades to absent while the CPU serves on. What
+remains unverified: the backend executing on GPU hardware — the
+planner choosing it, cross-checks agreeing — which waits on a
+working torch environment on the Strix. The session, its criteria
+stated in advance, and a dated addendum recording all of this are in
+`docs/phase5-strix-runbook.md`.
 
 ## Layout
 

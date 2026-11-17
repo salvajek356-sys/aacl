@@ -1,3 +1,8 @@
+test_async_handle_contract (test_aacl.Phase1Tests.test_async_handle_contract) ... ok
+test_phase1_deterministic_plan (test_aacl.Phase1Tests.test_phase1_deterministic_plan) ... ok
+test_receipt_stub_unsigned (test_aacl.Phase1Tests.test_receipt_stub_unsigned) ... ok
+test_targets_validated_and_carried (test_aacl.Phase1Tests.test_targets_validated_and_carried) ... ok
+test_telemetry_load_init_split (test_aacl.Phase1Tests.test_telemetry_load_init_split) ... ok
 test_artifact_integrity (test_aacl.ProofTests.test_artifact_integrity) ... ok
 test_deterministic_plan (test_aacl.ProofTests.test_deterministic_plan) ... ok
 test_fp32_path (test_aacl.ProofTests.test_fp32_path) ... ok
@@ -12,6 +17,6 @@ test_unknown_model (test_aacl.ProofTests.test_unknown_model) ... ok
 test_unsupported_constraint (test_aacl.ProofTests.test_unsupported_constraint) ... ok
 
 ----------------------------------------------------------------------
-Ran 12 tests in 0.039s
+Ran 17 tests in 0.545s
 
 OK

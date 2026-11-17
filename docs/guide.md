@@ -76,6 +76,25 @@ This is a young project, and this guide will not pretend otherwise.
   only way that counts: the original tests, unmodified, still pass, and the
   proof's measurements reproduce its September evidence to the last digit.
   That is Phase 0 of the build plan. The contracts grow teeth in Phase 1.
+- **As of 17 November 2026**, the contracts have their first teeth — Phase 1.
+  A request can now say what it *wants*, not just what it is: a latency
+  target, a memory limit, a cost budget, which of those to optimize for, and
+  the name of the reference its quality should one day be judged against.
+  Say any of it wrong — a negative budget, an optimization nobody offers —
+  and the refusal arrives in writing, as before. Say it right, and the words
+  are carried into the plan and repeated back in its explanation. But read
+  the explanation closely, because it says the quiet part out loud: the
+  targets are *recorded*, not yet *scored*. Choosing by them is Phase 2's
+  work, and this phase declines to pretend otherwise. Underneath, two
+  quieter changes. Execution now travels through a handle — the shape a
+  slow or distant machine will need — even though the CPU backend finishes
+  before the handle is handed back, and says so when you try to cancel it:
+  nothing was stopped, because nothing was still running. And every artifact
+  has a full name now — which model, from what source, at what precision,
+  under what transformation, for which backend, hashed together — so two
+  artifacts with the same name are the same artifact. Every response also
+  carries a receipt, unsigned and labeled unsigned in plain sight: the shape
+  of the promise the endgame will keep, not the promise itself.
 
 What it does not do, yet: run a real model, touch a GPU, quantize anything,
 or arbitrate between two agents who both want the same chip. What it will
@@ -91,9 +110,10 @@ python3 -m venv .venv
 .venv/bin/python prove.py
 ```
 
-That runs the twelve tests and regenerates the evidence folder — the same
-numbers quoted above, produced on your hardware instead. If they don't match,
-that's a finding, and findings are the point.
+That runs the test suite — the original twelve tests, plus five more for the
+Phase 1 contracts — and regenerates the evidence folder: the same numbers
+quoted above, produced on your hardware instead. If they don't match, that's
+a finding, and findings are the point.
 
 To poke the API by hand:
 

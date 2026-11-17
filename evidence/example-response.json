@@ -4,15 +4,16 @@
     "label": 1
   },
   "plan": {
-    "plan_id": "259e7e70c47dce1e",
+    "plan_id": "ceb756cf0dbea9e4",
     "candidate": {
       "backend": "cpu-python",
       "precision": "fp64",
       "local": true,
       "preference_rank": 0
     },
-    "artifact_id": "1cf26609a97714cc27a8190497a500b83379af95d29002a632f77bbd8980c58c",
-    "reason": "STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE"
+    "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
+    "reason": "STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE",
+    "explanation": "Selected cpu-python/fp64 for linear-demo-v1 (artifact f33ee16f5cbf\u2026): STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE \u2014 selection is a static precision preference, explicitly not a latency estimate. Workload declares no latency/memory/cost targets; optimize_for=latency. Phase 1 carries these into the plan without scoring against them \u2014 target-pressure scoring arrives in Phase 2. No quality reference declared \u2014 quality unmeasured."
   },
   "candidates": [
     {
@@ -40,15 +41,27 @@
     "local": true
   },
   "metrics": {
-    "request_id": "c639ccd3-0876-4f3b-ad12-1e5dc771aa0c",
+    "request_id": "66b7787e-f3ca-4391-b8dc-b149250e5778",
     "success": true,
     "fallback": false,
+    "init_ms": 0.004737,
+    "load_ms": 0.146791,
     "model_id": "linear-demo-v1",
-    "plan_id": "259e7e70c47dce1e",
-    "artifact_id": "1cf26609a97714cc27a8190497a500b83379af95d29002a632f77bbd8980c58c",
+    "plan_id": "ceb756cf0dbea9e4",
+    "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
     "backend": "cpu-python",
     "precision": "fp64",
-    "inference_ms": 0.008473,
-    "runtime_ms_excluding_telemetry_write": 0.153681
+    "inference_ms": 0.028212,
+    "runtime_ms_excluding_telemetry_write": 0.238768
+  },
+  "receipt": {
+    "receipt_id": "48f177f3de45c980",
+    "status": "unsigned",
+    "signature": null,
+    "plan_id": "ceb756cf0dbea9e4",
+    "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
+    "model_id": "linear-demo-v1",
+    "backend": "cpu-python",
+    "precision": "fp64"
   }
 }

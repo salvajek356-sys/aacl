@@ -27,20 +27,36 @@ tests pass, and the synthetic precision comparison reproduces the original
 packaged evidence exactly (max abs error 1.538403431311508e-06, 0 label
 disagreements). The original proof zip remains untouched as the baseline record.
 
+**Phase 1 complete (2026-11-17).** Contracts v2. WorkloadSpec accepts a
+latency target, a memory limit, a cost budget, `optimize_for`, and a
+`quality_reference` — each validated (invalid values are typed refusals),
+carried into the plan, and named in its explanation, but *not yet scored
+against*: target-pressure scoring is Phase 2, quality measurement Phase 4,
+and the explanation says so in plain words. Execution goes through the async
+handle contract (`submit()` → `result()` / `cancel()` / optional `stream()`);
+the CPU backend completes trivially and says so. Artifact identity is the
+generalized content address `hash(model_id, source_digest, precision,
+transform_version, backend_constraints)`, canonically encoded. Telemetry
+splits `load_ms` / `init_ms`; every response carries the plan explanation and
+an unsigned receipt stub (signature null, status `"unsigned"` — a stub, not
+cryptography). 17/17 tests pass — the 12 proof tests unmodified, 5 new
+Phase 1 tests including plan determinism — and the precision evidence is
+unchanged: max abs error 1.538403431311508e-06, 0 label disagreements.
+
 ## Layout
 
 ```
 aacl/
   core/          WorkloadSpec, BackendProfile, execution types
-  planner/       candidate generation, scoring, plan assembly
+  planner/       candidate generation, scoring, plan assembly + explanation
   policy/        the independent policy gate (rules + engine)
-  backends/      backend contract + CPU reference backend
+  backends/      backend contract (async handles) + CPU reference backend
   optimization/  transformation services (quantization — Phase 4)
-  telemetry/     event metrics + JSONL recorder
+  telemetry/     event metrics + JSONL recorder + receipt stubs
   models/        model registry and artifact identity
   api/           Runtime + POST /infer
 prove.py         runs the tests and regenerates evidence/ (venv required)
-test_aacl.py     the v0.1 proof's tests, unmodified
+test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1 tests
 ```
 
 ## Run the proof

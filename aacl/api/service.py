@@ -1,6 +1,12 @@
 """The thin application-facing API (roadmap §12): POST /infer, kept boring on
 purpose. Runtime flow, error codes, status codes, and body limits are the
-v0.1 proof's, unchanged."""
+v0.1 proof's, unchanged.
+
+Phase 1: execution goes through the backend's async handle contract
+(submit → result), the response gains the plan's explanation (inside the
+plan) and an unsigned receipt stub, and telemetry records the load/init
+timing split.
+"""
 import argparse
 import json
 import time
@@ -10,9 +16,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from ..backends.cpu import CPUBackend
 from ..core.workload import Rejection, WorkloadSpec
-from ..models.registry import ARTIFACT_ID
 from ..planner.planner import plan
 from ..telemetry import metrics
+from ..telemetry.receipt import build_receipt_stub
 from ..telemetry.recorder import TelemetryRecorder
 
 
@@ -26,16 +32,22 @@ class Runtime:
         start = time.perf_counter_ns()
         event = metrics.new_event(str(uuid.uuid4()))
         try:
+            init_start = time.perf_counter_ns()
+            profile = self.backend.capabilities()
+            event["init_ms"] = (time.perf_counter_ns() - init_start) / 1e6
+            load_start = time.perf_counter_ns()
             spec = WorkloadSpec.parse(raw)
-            selected, candidates = plan(spec, self.backend.capabilities())
+            selected, candidates = plan(spec, profile)
+            event["load_ms"] = (time.perf_counter_ns() - load_start) / 1e6
             execution_start = time.perf_counter_ns()
-            output = self.backend.execute(selected, spec.input)
+            output = self.backend.submit(selected, spec.input).result()
             event.update(success=True, model_id=spec.model_id, plan_id=selected.plan_id,
-                         artifact_id=ARTIFACT_ID, backend=selected.candidate.backend,
+                         artifact_id=selected.artifact_id, backend=selected.candidate.backend,
                          precision=selected.candidate.precision,
                          inference_ms=(time.perf_counter_ns() - execution_start) / 1e6)
             result = {"output": output, "plan": asdict(selected), "candidates": [asdict(c) for c in candidates],
-                      "capabilities": asdict(self.backend.capabilities()), "metrics": event}
+                      "capabilities": asdict(profile), "metrics": event,
+                      "receipt": build_receipt_stub(selected, spec, event["request_id"])}
             return result
         except Rejection as exc:
             event["error_code"] = exc.code

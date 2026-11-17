@@ -1,6 +1,6 @@
 """Telemetry recording: one JSONL event per request, appended, inputs never
-recorded. Phase 0 writes exactly the v0.1 proof's event shape; the load/init
-split and per-attempt records arrive in Phases 1 and 3."""
+recorded. Phase 1 events carry the load/init timing split (see metrics.py);
+per-attempt records arrive in Phase 3."""
 import json
 
 

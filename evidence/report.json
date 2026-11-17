@@ -1,25 +1,25 @@
 {
-  "utc": "2026-11-17T14:51:16.043171+00:00",
+  "utc": "2026-11-17T15:41:28.853372+00:00",
   "python": "3.12.3",
   "platform": "Linux-7.0.0-44-generic-x86_64-with-glibc2.39",
   "virtual_environment": true,
   "third_party_dependencies": [],
-  "tests_run": 17,
+  "tests_run": 23,
   "tests_passed": true,
   "benchmark_iterations_per_path": 2000,
   "warmups_per_path": 100,
   "benchmark": {
     "direct_cpu_fp64": {
-      "median_us": 11.638,
-      "p95_us": 22.955
+      "median_us": 11.888,
+      "p95_us": 15.514
     },
     "runtime_no_telemetry_write": {
-      "median_us": 64.31649999999999,
-      "p95_us": 85.448
+      "median_us": 94.8725,
+      "p95_us": 140.541
     },
     "runtime_with_jsonl_write": {
-      "median_us": 90.406,
-      "p95_us": 113.992
+      "median_us": 126.991,
+      "p95_us": 221.042
     }
   },
   "synthetic_precision_comparison": {

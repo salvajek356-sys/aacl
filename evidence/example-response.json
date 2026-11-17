@@ -12,8 +12,11 @@
       "preference_rank": 0
     },
     "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
-    "reason": "STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE",
-    "explanation": "Selected cpu-python/fp64 for linear-demo-v1 (artifact f33ee16f5cbf\u2026): STATIC_PRECISION_PREFERENCE_NOT_LATENCY_ESTIMATE \u2014 selection is a static precision preference, explicitly not a latency estimate. Workload declares no latency/memory/cost targets; optimize_for=latency. Phase 1 carries these into the plan without scoring against them \u2014 target-pressure scoring arrives in Phase 2. No quality reference declared \u2014 quality unmeasured."
+    "reason": "STATIC_PRECISION_PREFERENCE_NO_TARGETS_DECLARED",
+    "explanation": "Selected cpu-python/fp64 for linear-demo-v1 (artifact f33ee16f5cbf\u2026): no latency, memory, or cost targets declared, so there is no target pressure to score; selection follows the standing precision preference \u2014 a preference, not a measurement. Workload declares no latency/memory/cost targets; optimize_for=latency. No quality reference declared \u2014 quality unmeasured.",
+    "estimated_latency_ms": 0.021,
+    "estimated_memory_mb": 0.004176,
+    "estimated_cost": 2.1e-05
   },
   "candidates": [
     {
@@ -38,24 +41,27 @@
       "fp32",
       "fp64"
     ],
-    "local": true
+    "local": true,
+    "total_memory_bytes": 8319897600,
+    "available_memory_bytes": 512278528,
+    "max_cache_bytes": 2079974400
   },
   "metrics": {
-    "request_id": "66b7787e-f3ca-4391-b8dc-b149250e5778",
+    "request_id": "8eac6347-056e-4bb9-ab08-2fb77dcd3562",
     "success": true,
     "fallback": false,
-    "init_ms": 0.004737,
-    "load_ms": 0.146791,
+    "init_ms": 0.004967,
+    "load_ms": 0.187062,
     "model_id": "linear-demo-v1",
     "plan_id": "ceb756cf0dbea9e4",
     "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
     "backend": "cpu-python",
     "precision": "fp64",
-    "inference_ms": 0.028212,
-    "runtime_ms_excluding_telemetry_write": 0.238768
+    "inference_ms": 0.050706,
+    "runtime_ms_excluding_telemetry_write": 0.302605
   },
   "receipt": {
-    "receipt_id": "48f177f3de45c980",
+    "receipt_id": "f81a199204c4169b",
     "status": "unsigned",
     "signature": null,
     "plan_id": "ceb756cf0dbea9e4",

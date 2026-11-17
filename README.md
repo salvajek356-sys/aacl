@@ -43,6 +43,25 @@ cryptography). 17/17 tests pass — the 12 proof tests unmodified, 5 new
 Phase 1 tests including plan determinism — and the precision evidence is
 unchanged: max abs error 1.538403431311508e-06, 0 label disagreements.
 
+**Phase 2 complete (2026-11-17).** Planning for real. Capability discovery
+is real: the backend profile is read from the machine at startup — usable
+cores, total and available memory, and a cache ceiling (`max_cache_bytes`,
+a quarter of total memory) — and the precision list is exactly what the CPU
+backend implements. Each candidate gets static capability estimates
+(latency, memory, cost — fields named `estimated_*`, the model and its
+constants in `planner/estimates.py`), and selection is target-pressure
+scoring: the lowest worst pressure against the workload's declared budgets
+wins; epsilon ties break by `optimize_for`, then absolute estimated cost,
+then backend name, then artifact id; every scored plan explains itself in
+the "76% of its latency budget" form. Quality remains unmeasured — a
+declared `quality_reference` contributes no pressure and the explanation
+says so — and a request with no budgets keeps the standing precision
+preference, there being no pressure to score. 23/23 tests pass (the 12
+proof tests unmodified; one Phase 1 test adapted where the scorer's
+replacement changed the targeted request's selected precision, with the
+reason recorded in the test itself) and the precision evidence is
+unchanged: max abs error 1.538403431311508e-06, 0 label disagreements.
+
 ## Layout
 
 ```
@@ -56,7 +75,8 @@ aacl/
   models/        model registry and artifact identity
   api/           Runtime + POST /infer
 prove.py         runs the tests and regenerates evidence/ (venv required)
-test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1 tests
+test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1 and
+                 Phase 2 tests (one Phase 1 test adapted, reason in place)
 ```
 
 ## Run the proof

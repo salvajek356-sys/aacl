@@ -9,11 +9,13 @@ target, a memory limit, a cost budget, an `optimize_for` preference, and a
 against. Every value is validated — a negative budget or an `optimize_for`
 outside the supported set is a typed refusal, not a quiet default.
 
-What Phase 1 does NOT do with these fields is equally explicit: they are
-carried into the plan and named in its explanation, but they do not yet steer
-selection. Target-pressure scoring is Phase 2; quality measurement against
-the reference is Phase 4. A declared target is a recorded promise about what
-the workload wants, not yet a claim that the planner optimized for it.
+Phase 2 puts the declared budgets to work: the planner scores candidates by
+target pressure against the latency, memory, and cost figures declared
+here, and `optimize_for` orders its tie-breaks. The one field that still
+does not steer anything is `quality_reference`: quality is unmeasured until
+Phase 4, so a declared reference is carried and named, and contributes no
+score — the plan's explanation says so rather than letting a declared
+reference look honored when it was only noted.
 """
 import math
 from dataclasses import dataclass
@@ -30,7 +32,8 @@ class Rejection(ValueError):
 
 
 # The preferences a workload may ask the planner to optimize for. Phase 1
-# validates and records the choice; Phase 2's scorer is what acts on it.
+# validated and recorded the choice; Phase 2's scorer acts on it as the
+# first tie-break after worst target pressure.
 OPTIMIZE_FOR = ("latency", "quality", "cost", "memory")
 
 _FIELDS = {"model_id", "input", "allowed_precisions", "local_only",

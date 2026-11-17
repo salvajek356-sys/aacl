@@ -95,6 +95,25 @@ This is a young project, and this guide will not pretend otherwise.
   artifacts with the same name are the same artifact. Every response also
   carries a receipt, unsigned and labeled unsigned in plain sight: the shape
   of the promise the endgame will keep, not the promise itself.
+- **Later on 17 November 2026**, the planner started making real decisions —
+  Phase 2. Two changes underneath. First, the machine's introduction of
+  itself is no longer written in advance: when the runtime starts, it reads
+  the machine it woke up on — how many cores it may use, how much memory
+  there is and how much is free, how large a cache it may keep — and writes
+  down what it found. Second, the choice itself. Each surviving candidate
+  now gets an estimate — latency, memory, cost — plainly labeled an
+  estimate, built from a small static model whose constants sit in one file
+  where anyone can argue with them. The winner is the candidate whose worst
+  pressure against the promises *you* made is lowest: declare a latency
+  target tight enough, and the runtime chooses the narrower precision and
+  tells you it sits at 76% of its latency budget while the wider one would
+  have broken it at 124%. That sentence is the one this whole design was
+  built to be able to say. Two honest limits remain, and the explanations
+  state both. Quality is still not measured: name a reference and it is
+  carried, named, and given no say in the choice until Phase 4 teaches the
+  runtime to measure against it. And if a request declares no targets at
+  all, there is nothing to score — the old standing preference decides, and
+  the plan says that instead of inventing a pressure.
 
 What it does not do, yet: run a real model, touch a GPU, quantize anything,
 or arbitrate between two agents who both want the same chip. What it will
@@ -110,10 +129,11 @@ python3 -m venv .venv
 .venv/bin/python prove.py
 ```
 
-That runs the test suite — the original twelve tests, plus five more for the
-Phase 1 contracts — and regenerates the evidence folder: the same numbers
-quoted above, produced on your hardware instead. If they don't match, that's
-a finding, and findings are the point.
+That runs the test suite — the original twelve tests, five more for the
+Phase 1 contracts, and six for Phase 2's discovery, estimates, and scoring
+— and regenerates the evidence folder: the same numbers quoted above,
+produced on your hardware instead. If they don't match, that's a finding,
+and findings are the point.
 
 To poke the API by hand:
 

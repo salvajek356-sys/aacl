@@ -3,6 +3,12 @@ test_phase1_deterministic_plan (test_aacl.Phase1Tests.test_phase1_deterministic_
 test_receipt_stub_unsigned (test_aacl.Phase1Tests.test_receipt_stub_unsigned) ... ok
 test_targets_validated_and_carried (test_aacl.Phase1Tests.test_targets_validated_and_carried) ... ok
 test_telemetry_load_init_split (test_aacl.Phase1Tests.test_telemetry_load_init_split) ... ok
+test_phase2_deterministic_plan (test_aacl.Phase2Tests.test_phase2_deterministic_plan) ... ok
+test_phase2_discovery_facts (test_aacl.Phase2Tests.test_phase2_discovery_facts) ... ok
+test_phase2_no_targets_keeps_standing_preference (test_aacl.Phase2Tests.test_phase2_no_targets_keeps_standing_preference) ... ok
+test_phase2_quality_unmeasured (test_aacl.Phase2Tests.test_phase2_quality_unmeasured) ... ok
+test_phase2_tie_break_chain (test_aacl.Phase2Tests.test_phase2_tie_break_chain) ... ok
+test_phase2_two_candidate_choice (test_aacl.Phase2Tests.test_phase2_two_candidate_choice) ... ok
 test_artifact_integrity (test_aacl.ProofTests.test_artifact_integrity) ... ok
 test_deterministic_plan (test_aacl.ProofTests.test_deterministic_plan) ... ok
 test_fp32_path (test_aacl.ProofTests.test_fp32_path) ... ok
@@ -17,6 +23,6 @@ test_unknown_model (test_aacl.ProofTests.test_unknown_model) ... ok
 test_unsupported_constraint (test_aacl.ProofTests.test_unsupported_constraint) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 0.545s
+Ran 23 tests in 0.072s
 
 OK

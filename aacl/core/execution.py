@@ -4,6 +4,9 @@ the ranked-fallback plan shape arrives in Phase 3 (companion §2).
 Phase 1: the plan carries its own explanation — a human-readable sentence
 derived from the actual selection, the artifact identity, and the workload's
 declared targets — so every response can say why this plan, in words.
+
+Phase 2: the plan also carries the chosen candidate's static estimates, in
+fields named `estimated_*` so no reader can mistake them for measurements.
 """
 from dataclasses import dataclass
 
@@ -23,3 +26,6 @@ class ExecutionPlan:
     artifact_id: str
     reason: str
     explanation: str = ""
+    estimated_latency_ms: float = None
+    estimated_memory_mb: float = None
+    estimated_cost: float = None

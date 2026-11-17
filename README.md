@@ -112,9 +112,15 @@ changed behavior — the Phase 1 targeted fixture and three others — with
 reasons recorded in place) and the precision evidence is unchanged:
 max abs error 1.538403431311508e-06, 0 label disagreements.
 
-**Phase 5 built (2026-11-17); the Strix session ran the same day —
-structural pass, execution blocked by the machine's torch build
-(recorded at the end of this section).** The
+**Phase 5 complete (2026-11-17) — VERIFIED PASS on the Strix.**
+All four criteria stated in advance are met on the hardware: suite
+green with the GPU tests running, 32/32 protected files
+byte-identical to Phase 4, demo verdict PASS with every CPU/GPU
+cross-check agreeing, and prove.py's precision block reproduced
+exactly. The road there ran through a broken torch wheel, a
+working one built in isolation, and two latent eager-`.get` bugs
+found by the hardware runs themselves; the full story is recorded
+at the end of this section and in `docs/phase5-strix-runbook.md`. The
 second backend: `backends/gpu.py` executes both registered models with
 PyTorch on the accelerator (ROCm exposes the device through torch's
 CUDA surface; the backend names itself `gpu-rocm` or `gpu-cuda` for
@@ -157,12 +163,36 @@ The session also exposed an ACCL-side flaw — discovery probed
 in-process, so the crashing backend took the whole runtime down with
 it — fixed the same day by amendment: the probe now runs in a
 subprocess (`python -m aacl.backends.gpu`), and a backend that
-crashes on contact degrades to absent while the CPU serves on. What
-remains unverified: the backend executing on GPU hardware — the
-planner choosing it, cross-checks agreeing — which waits on a
-working torch environment on the Strix. The session, its criteria
-stated in advance, and a dated addendum recording all of this are in
-`docs/phase5-strix-runbook.md`.
+crashes on contact degrades to absent while the CPU serves on.
+
+**Closure (2026-11-17).** A working torch was built in an isolated
+venv on the Strix (AMD's official 2.12.0+rocm7.14.1 multi-arch
+wheel for gfx1151; the original user-site install and the system
+ROCm untouched). Under it the GPU backend genuinely executed: the
+unchanged planner chose the GPU for the tight-target fp64 and
+iris-latency workloads and the CPU for the rest; all four
+cross-checks agreed (demo model exact at both precisions; iris
+worst difference 1.78e-15 at fp64, 9.54e-07 at fp32; labels
+exact). prove.py, run from the repo root, reproduced the precision
+evidence to the last digit (1.538403431311508e-06, 0
+disagreements). The hardware runs also caught two latent bugs of
+the project's own — an eagerly evaluated dict.get default in the
+agreement test and the same pattern in the demo's cross-check —
+both fixed, with a repo-wide grep confirming no third instance.
+The amendment then had its own confirmation against the pushed
+code: under the working python the full 60-test suite passed with
+the GPU tests running; under the old broken python the suite
+completed CPU-only instead of dying — with one failure, in a test
+that had asserted the probe child always exits cleanly. On a
+broken runtime the child dies by signal, which is the design
+working; the test had modeled two of a machine's three torch
+states. It was corrected to the contract — a clean answer is
+believed exactly as given, a dead child means no GPU — in the
+closure commits, which also anchored prove.py's test discovery
+and evidence to its own directory, after an early reproduction
+run reported a hollow pass from the wrong one. The session, its
+criteria stated in advance, and dated addenda recording all of
+this are in `docs/phase5-strix-runbook.md`.
 
 ## Layout
 

@@ -190,3 +190,48 @@ prove.py runs — the runtime surviving a broken device runtime is
 the amendment's own test. Criteria 1, 3, and 4 in their original
 form still wait on a torch environment on the Strix that can
 dispatch a kernel.
+
+## Closure addendum (2026-11-17) — VERIFIED PASS
+
+The criteria as originally scored above stand as the record of the
+first session. They were subsequently met in full:
+
+1. Suite green with GPU tests running — MET (5.2E validation copy:
+   53 tests OK, skipped=2 by design; and, after the push, the
+   canonical code on the Strix: 60 tests OK, skipped=2, under the
+   compat python).
+2. Protected files unchanged — MET (32/32, first session).
+3. Demo verdict PASS — MET (5.2E: each backend chosen at least
+   once; cross-checks 0 / 0 / 1.78e-15 / 9.54e-07, labels exact).
+4. prove.py precision unchanged — MET (5.2G.1, run from the repo
+   root: 1.538403431311508e-06, 0 disagreements, internal suite
+   green).
+
+Environment: isolated venv ~/accl-rocm-compat, torch
+2.12.0+rocm7.14.1 from AMD's official multi-arch index
+(torch[device-gfx1151]); the user-site 7.1 install and system ROCm
+untouched. Fixes validated in a copy and committed: ca9c3dd
+(test), bfb80f6 (demo). The amendment (361b580) and both fixes
+were pushed (GitHub 12a19601) and pulled on the Strix for the
+confirmation below.
+
+Amendment confirmation (2026-11-17, against the pushed code):
+under the compat python, 60 tests OK (skipped=2) with the GPU
+tests running; under the old user-site python, the suite
+completed CPU-only instead of dying in discovery — with one
+failure, test_the_real_child_answers_cleanly_on_this_machine,
+which asserted the probe child always exits 0. On the broken
+runtime the child dies by SIGSEGV (-11), which is the design
+working; the test had modeled two of a machine's three torch
+states (absent, working — not broken). Corrected in the closure
+commits to the contract the parent actually keeps: a clean answer
+is believed exactly as given; a dead child means no GPU profile.
+
+Process note: the first prove.py reproduction (5.2G) reported a
+hollow PASS from an empty directory — prove.py discovered tests
+relative to the caller's working directory, ran zero, and still
+printed success. The run was caught and re-done from the repo
+root (5.2G.1). The flaw is fixed in the closure commits:
+discovery and the evidence directory are anchored to prove.py's
+own directory, verified from both the repo root and an empty
+directory (60 tests, precision identical either way).

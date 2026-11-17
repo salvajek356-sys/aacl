@@ -205,16 +205,34 @@ This is a young project, and this guide will not pretend otherwise.
   probe now runs in a subprocess; on that same broken machine,
   discovery today reports no GPU and the CPU serves on — which is,
   in the end, the behavior a compatibility layer exists to have.
-  What remains unproven is narrower than it was: the backend
-  executing on hardware, under a torch build that can dispatch a
-  kernel at all.
+  *The session has since finished, and the sentence updates
+  again.* A working torch was built in an isolated corner of the
+  Strix — AMD's own 7.14.1-line successor build for this chip,
+  installed without touching the broken one or the system ROCm —
+  and under it the exam ran in full. The unchanged planner chose
+  the GPU where the targets demanded it and the CPU where they
+  didn't; the two backends' answers agreed to nothing at all on
+  the demo model and to a millionth on the flower classifier,
+  labels exact everywhere; and the proof, run from the repo root,
+  reproduced its precision figures to the last digit. Phase 5's
+  verdict, against the criteria written down before any of it
+  ran: **PASS** — the second backend arrived, nothing above the
+  backend line changed, and the device does the work correctly.
+  The hardware runs earned one more entry in the record: they
+  caught two bugs of this project's own, the same eagerly
+  evaluated default hiding in both the agreement test and the
+  demo — the kind of bug that only exists because a test had
+  never run anywhere before. First executions are exams too.
+  And the amendment met its own exam on the same machine: under
+  the old broken python the suite now completes on the CPU
+  instead of dying without a word.
 
-What it does not do, yet: run on a GPU — the backend is built and
-audited; its first hardware session found the machine's torch build
-unable to dispatch a kernel, so the execution exam is still ahead
-of it — run
-anything larger than a flower classifier, or arbitrate between two
-agents who both want the same chip.
+What it does not do, yet: run anything larger than a flower
+classifier, measure instead of estimate (Phase 6), or arbitrate
+between two agents who both want the same chip. Nor does it run
+on an NPU: the Strix's NPU stands enabled and compiler-ready as
+a separate track (`docs/npu-enablement-strix.md`), with no
+backend built.
 What it will never do, by design: let the thing submitting the work decide
 whether the rules apply to it.
 

@@ -22,10 +22,17 @@ def summarize(values):
 def main():
     if sys.prefix == sys.base_prefix:
         raise SystemExit("Run this proof inside a Python virtual environment")
-    output = Path("evidence")
+    # Anchor discovery and evidence to this file's own directory,
+    # never the caller's: a run launched from an empty directory
+    # once discovered zero tests and still reported success — a
+    # hollow pass, caught and re-run from the repo root (Strix
+    # session 5.2G/5.2G.1). The harness must test the same suite
+    # and write the same evidence wherever it is launched from.
+    root = Path(__file__).resolve().parent
+    output = root / "evidence"
     output.mkdir(exist_ok=True)
     stream = io.StringIO()
-    suite = unittest.defaultTestLoader.discover(".", pattern="test_aacl.py")
+    suite = unittest.defaultTestLoader.discover(str(root), pattern="test_aacl.py")
     with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
         tests = unittest.TextTestRunner(stream=stream, verbosity=2).run(suite)
     (output / "tests.txt").write_text(stream.getvalue())

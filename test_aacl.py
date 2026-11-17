@@ -1257,17 +1257,36 @@ class Phase5ProbeIsolationTests(unittest.TestCase):
         self.assertEqual(result["plan"]["candidate"]["backend"],
                          "cpu-python")
 
-    def test_the_real_child_answers_cleanly_on_this_machine(self):
-        # No fakes: run the child exactly as discovery runs it. On a
-        # machine with no working device it must exit 0 and answer
-        # null — never die, never hang the suite.
-        completed = self.subprocess.run(
-            [self.sys.executable, "-m", "aacl.backends.gpu"],
-            capture_output=True, text=True, timeout=120)
-        self.assertEqual(completed.returncode, 0)
+    def test_the_real_child_contract_on_this_machine(self):
+        # No fakes: run the child exactly as discovery runs it, and
+        # hold the pair to the contract on whichever machine this is.
+        # A machine's torch comes in three states — absent, working,
+        # and broken — and the first version of this test modeled
+        # only two: it asserted the child always exits 0, which
+        # failed on the Strix's broken user-site torch (the child
+        # died by SIGSEGV, -11) even though the parent absorbed the
+        # death exactly as designed. The contract is not "the child
+        # always answers"; it is "the parent's belief matches the
+        # child's behavior": a clean answer is believed exactly as
+        # given, and a dead child means no GPU profile, never an
+        # exception.
+        try:
+            completed = self.subprocess.run(
+                [self.sys.executable, "-m", "aacl.backends.gpu"],
+                capture_output=True, text=True, timeout=120)
+        except self.subprocess.TimeoutExpired:
+            completed = None
+        profile = self.gpu.probe_gpu_profile()
+        if completed is None or completed.returncode != 0:
+            self.assertIsNone(profile)
+            return
         answer = json.loads(completed.stdout.strip().splitlines()[-1])
-        if answer is not None:
+        if answer is None:
+            self.assertIsNone(profile)
+        else:
             self.assertEqual(set(answer), self.gpu._PROBE_KEYS)
+            self.assertIsNotNone(profile)
+            self.assertEqual(profile.name, answer["name"])
 
 
 if __name__ == "__main__":

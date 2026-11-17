@@ -9,6 +9,36 @@ test_phase2_no_targets_keeps_standing_preference (test_aacl.Phase2Tests.test_pha
 test_phase2_quality_unmeasured (test_aacl.Phase2Tests.test_phase2_quality_unmeasured) ... ok
 test_phase2_tie_break_chain (test_aacl.Phase2Tests.test_phase2_tie_break_chain) ... ok
 test_phase2_two_candidate_choice (test_aacl.Phase2Tests.test_phase2_two_candidate_choice) ... ok
+test_attempts_are_bounded (test_aacl.Phase3Tests.test_attempts_are_bounded) ... ok
+test_cache_builds_once_and_evicts_lru (test_aacl.Phase3Tests.test_cache_builds_once_and_evicts_lru) ... ok
+test_cache_oversize_artifact_built_but_not_retained (test_aacl.Phase3Tests.test_cache_oversize_artifact_built_but_not_retained) ... ok
+test_cache_pinning_survives_eviction (test_aacl.Phase3Tests.test_cache_pinning_survives_eviction) ... ok
+test_capability_lie_advances_and_downgrades (test_aacl.Phase3Tests.test_capability_lie_advances_and_downgrades) ... ok
+test_downgraded_candidate_is_last_resort_not_excluded (test_aacl.Phase3Tests.test_downgraded_candidate_is_last_resort_not_excluded) ... ok
+test_plan_carries_ranked_survivors (test_aacl.Phase3Tests.test_plan_carries_ranked_survivors) ... ok
+test_policy_regated_per_attempt_and_total_failure (test_aacl.Phase3Tests.test_policy_regated_per_attempt_and_total_failure) ... ok
+test_runtime_cache_resolves_and_unpins_plan_artifacts (test_aacl.Phase3Tests.test_runtime_cache_resolves_and_unpins_plan_artifacts) ... ok
+test_total_failure_through_runtime_records_every_attempt (test_aacl.Phase3Tests.test_total_failure_through_runtime_records_every_attempt) ... ok
+test_drift_measured_deterministic_and_recorded (test_aacl.Phase4Tests.test_drift_measured_deterministic_and_recorded) ... ok
+test_int8_artifact_identity_and_build (test_aacl.Phase4Tests.test_int8_artifact_identity_and_build) ... ok
+test_int8_execution_through_runtime (test_aacl.Phase4Tests.test_int8_execution_through_runtime) ... ok
+test_iris_plan_deterministic (test_aacl.Phase4Tests.test_iris_plan_deterministic) ... ok
+test_optimize_for_quality_ranks_ties_by_measured_drift (test_aacl.Phase4Tests.test_optimize_for_quality_ranks_ties_by_measured_drift) ... ok
+test_planner_chooses_fp32_under_tight_drift_tolerance (test_aacl.Phase4Tests.test_planner_chooses_fp32_under_tight_drift_tolerance) ... ok
+test_planner_chooses_int8_under_loose_drift_tolerance (test_aacl.Phase4Tests.test_planner_chooses_int8_under_loose_drift_tolerance) ... ok
+test_reference_and_tolerance_validation (test_aacl.Phase4Tests.test_reference_and_tolerance_validation) ... ok
+test_trained_model_accuracy (test_aacl.Phase4Tests.test_trained_model_accuracy) ... ok
+test_training_reproduces_committed_weights (test_aacl.Phase4Tests.test_training_reproduces_committed_weights) ... ok
+test_unmeasured_path_is_demonstrated (test_aacl.Phase4Tests.test_unmeasured_path_is_demonstrated) ... ok
+test_gpu_executes_both_models_and_agrees_with_cpu (test_aacl.Phase5GPUTests.test_gpu_executes_both_models_and_agrees_with_cpu) ... skipped 'no GPU device on this machine'
+test_gpu_refuses_what_it_never_claimed (test_aacl.Phase5GPUTests.test_gpu_refuses_what_it_never_claimed) ... skipped 'no GPU device on this machine'
+test_planner_chooses_gpu_and_cpu_for_different_workloads (test_aacl.Phase5GPUTests.test_planner_chooses_gpu_and_cpu_for_different_workloads) ... skipped 'no GPU device on this machine'
+test_discovery_registers_the_cpu_and_only_real_backends (test_aacl.Phase5Tests.test_discovery_registers_the_cpu_and_only_real_backends) ... ok
+test_generate_unions_registered_backends_only (test_aacl.Phase5Tests.test_generate_unions_registered_backends_only) ... ok
+test_gpu_backend_absent_is_none_not_an_error (test_aacl.Phase5Tests.test_gpu_backend_absent_is_none_not_an_error) ... ok
+test_gpu_estimates_are_a_separate_static_row (test_aacl.Phase5Tests.test_gpu_estimates_are_a_separate_static_row) ... ok
+test_no_gpu_plans_are_the_phase4_plans (test_aacl.Phase5Tests.test_no_gpu_plans_are_the_phase4_plans) ... ok
+test_router_dispatches_by_the_plans_own_candidate (test_aacl.Phase5Tests.test_router_dispatches_by_the_plans_own_candidate) ... ok
 test_artifact_integrity (test_aacl.ProofTests.test_artifact_integrity) ... ok
 test_deterministic_plan (test_aacl.ProofTests.test_deterministic_plan) ... ok
 test_fp32_path (test_aacl.ProofTests.test_fp32_path) ... ok
@@ -23,6 +53,6 @@ test_unknown_model (test_aacl.ProofTests.test_unknown_model) ... ok
 test_unsupported_constraint (test_aacl.ProofTests.test_unsupported_constraint) ... ok
 
 ----------------------------------------------------------------------
-Ran 23 tests in 0.072s
+Ran 53 tests in 0.500s
 
-OK
+OK (skipped=3)

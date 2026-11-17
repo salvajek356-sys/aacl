@@ -9,9 +9,13 @@ machine and planning stays deterministic within a run.
 
 The precision list is not discovered from the hardware; it is the set the
 CPU backend actually implements — fp64 natively, fp32 by explicit rounding
-at every step. int8 is parseable in a request but no backend offers it, so
-it is honestly absent here. A future backend declares its own list the same
-way: what it can really run, nothing more.
+at every step, and (Phase 4) int8 as integer accumulation over artifacts
+the transformation service produces. int8 is listed because the backend
+genuinely runs it; it is *offered* as a candidate only for models with a
+registered transform, because an int8 artifact exists only where the
+service has calibration data — candidate generation's business, not the
+profile's. A future backend declares its own list the same way: what it
+can really run, nothing more.
 
 `max_cache_bytes` is derived from *total* memory — a quarter of it — not
 from available memory: available memory fluctuates second to second, and a
@@ -65,7 +69,7 @@ class BackendProfile:
     architecture: str = platform.machine()
     logical_cores: int = _CORES
     runtime: str = platform.python_version()
-    precisions: tuple = ("fp32", "fp64")
+    precisions: tuple = ("fp32", "fp64", "int8")
     local: bool = True
     total_memory_bytes: int = _TOTAL_MEMORY_BYTES
     available_memory_bytes: int = _AVAILABLE_MEMORY_BYTES

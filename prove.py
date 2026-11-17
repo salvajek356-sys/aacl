@@ -72,7 +72,7 @@ def main():
                   "fp32 explicitly rounded in Python; no native acceleration or int8",
                   "Microbenchmark excludes HTTP and model load; tiny model exaggerates orchestration overhead",
                   "Policy remote denial uses a synthetic candidate; no remote execution",
-                  "No GPU, NPU, resource enforcement, production concurrency, or fallback"]}
+                  "No GPU, NPU, resource enforcement, or production concurrency"]}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     demo = Runtime(str(output / "demo-telemetry.jsonl")).infer(raw)
     (output / "example-response.json").write_text(json.dumps(demo, indent=2) + "\n")

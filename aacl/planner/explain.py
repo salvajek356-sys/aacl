@@ -15,18 +15,33 @@ Phase 2 honesty rules, succeeding Phase 1's "recorded, not scored":
 - With no budgets declared there is no pressure to report, and the
   sentence says selection followed the standing precision preference
   instead of inventing a pressure figure.
+
+Phase 3: when a scored candidate stands downgraded — its backend was
+caught in a capability lie — the sentence names it and says it was
+deprioritized. When the downgraded candidate is the one selected, the
+sentence says it runs as a last resort. A downgrade is never left to be
+inferred from a changed choice.
+
+Phase 4: quality is measured, and the sentences keep the two kinds of
+figure visibly apart. Latency, memory, and cost are still static
+estimates and are named as estimates. Drift is a measurement — taken
+against the named reference's eval rows — and is reported as one: the
+selected artifact's mean and max score error and its label
+disagreements, plus its quality pressure when a tolerance was declared.
+With no reference declared there is nothing to measure against, and the
+sentence says exactly that: "quality unmeasured — no reference."
 """
 from . import scorer
 
 _BUDGET_NOUN = {"latency": "latency budget", "memory": "memory budget",
-                "cost": "cost budget"}
+                "cost": "cost budget", "quality": "quality drift budget"}
 _BUDGET_VALUE = {"latency": "latency_target_ms", "memory": "memory_limit_mb",
                  "cost": "cost_budget"}
 _ESTIMATE_VALUE = {"latency": "estimated_latency_ms", "memory": "estimated_memory_mb",
                    "cost": "estimated_cost"}
 _ESTIMATE_NOUN = {"latency": "estimated latency", "memory": "estimated memory",
                   "cost": "estimated cost"}
-_UNITS = {"latency": "ms", "memory": "MB", "cost": "cost units"}
+_UNITS = {"latency": "ms", "memory": "MB", "cost": "cost units", "quality": ""}
 
 
 def _fmt(value):
@@ -49,14 +64,24 @@ def _selection_sentence(spec, selection, artifact):
             "precision preference — a preference, not a measurement."
         )
     dim = chosen.binding_dimension
-    estimate = getattr(chosen.estimate, _ESTIMATE_VALUE[dim])
-    budget = getattr(spec, _BUDGET_VALUE[dim])
-    parts = [head + (
-        f"target-pressure minimax — its binding constraint is {dim}, where "
-        f"its {_ESTIMATE_NOUN[dim]} of {_fmt(estimate)} {_UNITS[dim]} sits at "
-        f"{_pct(chosen.worst_pressure)} of its {_BUDGET_NOUN[dim]} "
-        f"({_fmt(budget)} {_UNITS[dim]})."
-    )]
+    if dim == "quality":
+        binding = (
+            f"target-pressure minimax — its binding constraint is quality, "
+            f"where its measured mean score error of "
+            f"{_fmt(chosen.drift['mean_score_error'])} sits at "
+            f"{_pct(chosen.worst_pressure)} of its quality drift budget "
+            f"(quality_max_drift={_fmt(spec.quality_max_drift)})."
+        )
+    else:
+        estimate = getattr(chosen.estimate, _ESTIMATE_VALUE[dim])
+        budget = getattr(spec, _BUDGET_VALUE[dim])
+        binding = (
+            f"target-pressure minimax — its binding constraint is {dim}, where "
+            f"its {_ESTIMATE_NOUN[dim]} of {_fmt(estimate)} {_UNITS[dim]} sits at "
+            f"{_pct(chosen.worst_pressure)} of its {_BUDGET_NOUN[dim]} "
+            f"({_fmt(budget)} {_UNITS[dim]})."
+        )
+    parts = [head + binding]
     others = [s for s in selection.scored if s is not chosen]
     if others:
         runner = min(others, key=lambda s: s.worst_pressure)
@@ -66,12 +91,28 @@ def _selection_sentence(spec, selection, artifact):
             f"{_pct(runner.worst_pressure)} of its "
             f"{_BUDGET_NOUN[runner.binding_dimension]}."
         )
-    parts.append("All candidate figures are static capability estimates, not measurements.")
+    parts.append("Latency, memory, and cost figures are static capability "
+                 "estimates, not measurements.")
     return " ".join(parts)
 
 
 def explain(spec, selection, artifact):
     parts = [_selection_sentence(spec, selection, artifact)]
+    downgraded = [s for s in selection.scored if s.downgraded]
+    if downgraded:
+        names = ", ".join(f"{s.candidate.backend}/{s.candidate.precision}"
+                          for s in downgraded)
+        if selection.chosen.downgraded:
+            parts.append(
+                f"Reliability: {names} stands downgraded — a capability lie "
+                f"was observed — and deprioritized; the selected candidate "
+                f"is itself downgraded and runs as a last resort."
+            )
+        else:
+            parts.append(
+                f"Reliability: {names} stands downgraded — a capability lie "
+                f"was observed — and is deprioritized below the alternatives."
+            )
     targets = []
     if spec.latency_target_ms is not None:
         targets.append(f"latency_target_ms={_fmt(spec.latency_target_ms)}")
@@ -82,11 +123,33 @@ def explain(spec, selection, artifact):
     declared = ", ".join(targets) if targets else "no latency/memory/cost targets"
     parts.append(f"Workload declares {declared}; optimize_for={spec.optimize_for}.")
     if spec.quality_reference is not None:
+        drift = selection.chosen.drift
         parts.append(
-            f"Quality reference '{spec.quality_reference}' declared; quality "
-            f"is unmeasured in Phase 2 — it contributes no pressure and no "
-            f"score. Measurement against the reference arrives in Phase 4."
+            f"Quality reference '{spec.quality_reference}' declared — drift "
+            f"measured against the model's floating-point artifact on its "
+            f"{drift['eval_samples']} eval rows: the selected artifact's "
+            f"mean score error is {_fmt(drift['mean_score_error'])}, max "
+            f"{_fmt(drift['max_score_error'])}, with "
+            f"{drift['label_disagreements']} label disagreements in "
+            f"{drift['eval_samples']}."
         )
+        if spec.quality_max_drift is not None:
+            parts.append(
+                f"quality_max_drift={_fmt(spec.quality_max_drift)} declared, "
+                f"so measured quality pressure is scored in the minimax."
+            )
+        elif spec.optimize_for == "quality" and selection.chosen.pressures:
+            parts.append(
+                "No quality_max_drift declared, so quality contributes no "
+                "pressure; ties in target pressure are ranked by the "
+                "measured drift, as optimize_for=quality asks."
+            )
+        else:
+            parts.append(
+                "No quality_max_drift declared, so quality contributes no "
+                "pressure."
+            )
     else:
-        parts.append("No quality reference declared — quality unmeasured.")
+        parts.append("Quality contributes no pressure and no score: "
+                     "quality unmeasured — no reference.")
     return " ".join(parts)

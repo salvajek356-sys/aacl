@@ -114,11 +114,88 @@ This is a young project, and this guide will not pretend otherwise.
   runtime to measure against it. And if a request declares no targets at
   all, there is nothing to score — the old standing preference decides, and
   the plan says that instead of inventing a pressure.
+- **Later still on 17 November 2026**, fallback stopped being a hope and
+  became a protocol — Phase 3. The plan no longer names a single winner and
+  keeps its fingers crossed: it carries every survivor, ranked, and the
+  executor walks that list in order. Each attempt re-passes the policy gate
+  — a candidate the gate refuses at execution time is recorded as refused,
+  never run — and each attempt is written down with a name for what
+  happened. There are four names: a backend error, a timeout, a policy
+  denial, and the interesting one, a *capability lie* — a backend that
+  claimed it could do something and then, asked to do it, said no. A lie
+  has a consequence: the registry marks that backend's claim down, and the
+  next plan ranks it below the honest alternatives and says so in its
+  explanation. Not a ban — a last resort, in case everything else is worse
+  — but a memory. The test that proves it is a small act of theatre: a fake
+  backend that advertises two precisions and lies about one of them. The
+  first request falls back and succeeds anyway; the second never tries the
+  liar first. Artifacts, meanwhile, got a household: a cache keyed by their
+  full names, bounded by the cache ceiling discovery wrote down, evicting
+  the least-recently-used when it fills — except the artifacts of a plan
+  currently running, which are pinned until it lands.
+- **Before the day was out on 17 November 2026**, the runtime learned to
+  measure — Phase 4. Two arrivals. First, a real model: not hand-built this
+  time but *trained* — a small classifier taught on the Iris dataset,
+  Fisher's 150 rows from 1936, embedded in the repo so nothing is
+  downloaded — by the plainest training there is, gradient descent under a
+  frozen recipe. Anyone can retrain it and check: the weights that come out
+  are the weights in the code, digit for digit. It names 29 of the 30
+  held-out flowers correctly; the one it misses sits on the border between
+  two species, where honest classifiers have always argued. Second,
+  quantization stopped being a rumor. A transformation service takes the
+  trained model, runs a reserved calibration slice of the same dataset,
+  works out its scales, and produces an int8 artifact — integers all the
+  way through the arithmetic, one honest multiply at the end. And quality
+  became a measurement instead of a posture. Name the reference — the
+  held-out slice has a name, *iris-eval-v1* — and every candidate's drift
+  from the floating-point model is measured on it and written into the plan
+  and the run's record: fp32's scores stray by about five ten-millionths on
+  average; int8's by about five hundredths, worst row near two tenths.
+  Neither flips a single label on this eval set, which is exactly why a
+  workload's drift tolerance is reckoned in score error — the figure that
+  actually moves. Declare a tolerance and quality joins the choosing as a
+  fourth pressure: the same request that picks int8 when it may drift a
+  tenth picks fp32 when it may drift only a hundredth. Declare no reference
+  at all and the plan says, in the plan's exact words, *quality unmeasured —
+  no reference.* One refusal grew sharper in the bargain: a reference name
+  that doesn't exist is no longer carried politely. It is refused in
+  writing, because a reference is now a thing that exists or doesn't.
+- **And then, the same day, Phase 5 was built** — which is not the
+  same as *run*, and this guide will keep the two words separate. The
+  second backend exists now: a GPU backend that runs both models
+  through PyTorch on an accelerator, behind the same handle contract,
+  claiming only the precisions it can genuinely execute — the floating
+  point pair, never int8. Its discovery is a probe, not a hope: the
+  device is asked, small test multiplications are actually run on it,
+  and only what demonstrably works is advertised. On a machine with no
+  device — including the machine this was built on — discovery
+  registers the CPU alone, no GPU candidate is ever generated, and the
+  runtime behaves exactly as Phase 4 left it, byte for byte. Where a
+  device does exist, the same planner, the same scorer, the same
+  executor choose between the two backends per workload, from static
+  estimates that now carry a GPU row — launch overhead and a device
+  context honestly charged, bandwidth honestly credited — labeled
+  placeholders until Phase 6 replaces estimates with measurements.
+  And the exam itself was made mechanical: a script diffs the whole
+  phase against Phase 4's commit and fails if anything outside a
+  short, reasoned allow-list changed. The planner, the scorer, the
+  executor, the policy gate, the telemetry shapes — byte-identical, or
+  the audit says so. On the build machine, the audit passes. **What
+  has not happened: the GPU run.** Nobody has watched this backend
+  execute on real hardware yet. That session belongs to the Strix Halo
+  in the corner of Tony's office, its pass criteria written down in
+  advance in a runbook in this repo — suite green with the GPU tests
+  actually running, audit passing, the planner choosing each backend
+  at least once, the two backends' answers agreeing. Until that
+  session happens and its output is pasted back, the honest status of
+  Phase 5 is: built, audited, and unproven where it counts.
 
-What it does not do, yet: run a real model, touch a GPU, quantize anything,
-or arbitrate between two agents who both want the same chip. What it will
-never do, by design: let the thing submitting the work decide whether the
-rules apply to it.
+What it does not do, yet: run on a GPU — the backend is built and
+audited, and its exam on real hardware is still ahead of it — run
+anything larger than a flower classifier, or arbitrate between two
+agents who both want the same chip.
+What it will never do, by design: let the thing submitting the work decide
+whether the rules apply to it.
 
 ## Try the proof yourself
 
@@ -130,10 +207,15 @@ python3 -m venv .venv
 ```
 
 That runs the test suite — the original twelve tests, five more for the
-Phase 1 contracts, and six for Phase 2's discovery, estimates, and scoring
-— and regenerates the evidence folder: the same numbers quoted above,
-produced on your hardware instead. If they don't match, that's a finding,
-and findings are the point.
+Phase 1 contracts, six for Phase 2's discovery, estimates, and scoring, ten
+for Phase 3's fallback protocol and artifact cache, eleven for Phase 4's
+trained model, quantization, and measured drift, and nine for Phase 5's
+second backend: six that run anywhere (discovery's honesty, routing,
+the no-GPU properties) and three that run only on a machine with a GPU
+genuinely in it — and regenerates
+the evidence folder: the same numbers quoted above, produced on your
+hardware instead. If they don't match, that's a finding, and findings are
+the point.
 
 To poke the API by hand:
 
@@ -153,10 +235,16 @@ miniature.
 
 Contracts first, so invalid combinations get caught before they reach a
 machine. Then a planner whose choices can be explained. Then fallback that
-behaves like a protocol instead of a hope. Then quantization whose quality is
-*measured* against a reference — or labeled, in plain text, "unmeasured."
+behaves like a protocol instead of a hope — built, and proved against a
+backend that lies. Then quantization whose quality is
+*measured* against a reference — built, with the measurement carried in the
+plan — or labeled, in plain text, "unmeasured" when there is no reference to
+measure against.
 Then a second backend, which is the real exam: if adding a GPU means changing
-the parts that talk to applications, the design was leaking all along. And
+the parts that talk to applications, the design was leaking all along. The
+backend is built and the diff audit passes; the exam's last sitting is on
+real hardware, with its criteria written down in advance.
+And
 last, the receipts and the ledger, so that anything an agent does inside this
 runtime can be answered for afterward.
 

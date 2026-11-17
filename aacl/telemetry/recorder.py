@@ -1,6 +1,7 @@
 """Telemetry recording: one JSONL event per request, appended, inputs never
 recorded. Phase 1 events carry the load/init timing split (see metrics.py);
-per-attempt records arrive in Phase 3."""
+Phase 3 events that reach execution carry a record per attempt inside the
+request's event — one line per request still, attempts and all."""
 import json
 
 

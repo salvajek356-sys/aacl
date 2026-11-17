@@ -16,7 +16,7 @@ Design sources, in order of authority:
 3. The v0.1 architecture proof — the working baseline this repo grows from.
 
 Plan of action: `~/workspace/your_files/accl-plan/accl-plan-of-action.md`
-(scope: Phases 0–4, decided 2026-11-16).
+(scope: Phases 0–4, decided 2026-11-16; Phase 5 approved 2026-11-17).
 
 ## Status
 
@@ -62,21 +62,119 @@ replacement changed the targeted request's selected precision, with the
 reason recorded in the test itself) and the precision evidence is
 unchanged: max abs error 1.538403431311508e-06, 0 label disagreements.
 
+**Phase 3 complete (2026-11-17).** Fallback protocol + artifact lifecycle.
+The plan carries the ranked survivor list; the executor tries candidates in
+rank order, re-gates policy per attempt, bounds attempts (the ranked list,
+capped at 8), and records every attempt — candidate, artifact, outcome,
+failure class, timing — in the response and the JSONL telemetry. Failure
+classes are named: `CAPABILITY_LIE`, `BACKEND_ERROR`, `POLICY_DENIAL`,
+`TIMEOUT`. A capability lie (a backend rejects an operation it claimed)
+downgrades the registry entry for that backend/model/precision; the next
+plan deprioritizes it — never excludes it — and its explanation says so.
+Total failure raises a typed `ExecutionFailed` naming every attempt. The
+`ArtifactCache` stores artifacts by their generalized identity under
+`get_or_build`, evicts LRU within `max_cache_bytes`, and never evicts
+pinned entries; the runtime resolves a plan's artifacts into the cache and
+pins them for the request. The receipt names what actually ran. Proved by
+fault injection: a test backend that claims fp64 then rejects it produces
+an advance to fp32, per-attempt records, and a next plan that avoids fp64.
+33/33 tests pass (all 23 prior tests unmodified, 10 new) and the precision
+evidence is unchanged: max abs error 1.538403431311508e-06, 0 label
+disagreements.
+
+**Phase 4 complete (2026-11-17).** Quantization + measured quality. A
+second model is installed: `iris-logreg-v1`, multinomial logistic
+regression genuinely trained in-repo on the embedded Iris dataset (90
+train rows, full-batch gradient descent, frozen recipe; `train_iris.py`
+retrains it and reproduces the committed weights exactly; fp64 accuracy
+on the held-out eval split is 29/30). The transformation service
+(`optimization/quantization.py`) owns calibration: it runs the 30-row
+calibration split, derives per-tensor symmetric scales, and produces an
+int8 artifact (transform version `int8-v1`, its own generalized identity)
+that the CPU backend genuinely executes — quantized inputs, integer
+accumulation, one dequantizing multiply. Drift against the named
+reference `iris-eval-v1` (the 30-row eval split) is measured per
+candidate (`optimization/quality.py`), carried on the plan, and recorded
+in telemetry per run: fp32 mean score error 5.2e-07, int8 0.0492 (max
+0.1846), label disagreements 0 for both — so the new validated
+WorkloadSpec field `quality_max_drift` is defined on mean score error,
+the figure that moves. With a reference and a tolerance, quality pressure
+joins the minimax (loose tolerance + tight latency selects int8; tight
+tolerance selects fp32); with a reference alone, drift is reported and
+ranks `optimize_for=quality` ties; with no reference, the explanation
+prints "quality unmeasured — no reference." Unknown reference names are
+typed refusals (`UNKNOWN_QUALITY_REFERENCE`), as is a tolerance with no
+reference. int8 is offered only for the trained model — the demo model
+has no calibration data, so its `allowed_precisions: ["int8"]` refusal
+stands. 44/44 tests pass (the 12 proof tests and all Phase 3 tests
+unmodified; four earlier tests adapted where Phase 4's surface genuinely
+changed behavior — the Phase 1 targeted fixture and three others — with
+reasons recorded in place) and the precision evidence is unchanged:
+max abs error 1.538403431311508e-06, 0 label disagreements.
+
+**Phase 5 built (2026-11-17) — the GPU run has not happened yet.** The
+second backend: `backends/gpu.py` executes both registered models with
+PyTorch on the accelerator (ROCm exposes the device through torch's
+CUDA surface; the backend names itself `gpu-rocm` or `gpu-cuda` for
+what the device actually is), behind the Phase 1 handle contract,
+advertising only the precisions its discovery probe genuinely executes
+on the device — fp32/fp64, never int8. PyTorch is the project's first
+non-stdlib dependency and is isolated to that one module, imported
+lazily: without torch, or without a device, discovery registers the
+CPU alone, no GPU candidate is ever generated, and behavior is Phase
+4's byte for byte. Registration is the seam: `backends/discovery.py`
+holds the registered set (one deterministic snapshot per process),
+`backends/router.py` dispatches each attempt to the backend its
+candidate names, the composition root wires the router as the default
+backend, candidate generation enumerates the registry when the passed
+profile is registered, and the estimator gains a GPU row of static
+constants (launch overhead + device-context allowance + device
+bandwidth rate — placeholders, labeled as such, pending Phase 6's
+measured corrections). The planner, scorer, executor, policy engine,
+workload contract, telemetry shapes, and receipt are byte-identical
+to Phase 4 — not as a claim but as a check: `phase5_diff_audit.py`
+diffs the tree against the Phase 4 commit and fails outside a minimal
+allow-list (it passes). `phase5_demo.py` runs the fixed request set
+and cross-checks CPU vs GPU outputs; on a GPU-less machine it reports
+PARTIAL, never PASS. 53/53 tests pass here (44 prior — three adapted
+to count relative to the registry, reasons in place — 6 new Phase 5
+tests, and 3 GPU-present tests that skip cleanly without a device).
+**What remains unverified, plainly: the backend has never executed on
+GPU hardware.** The session that settles it — suite green on the
+Strix Halo with the GPU tests running, audit passing, the planner
+choosing each backend, cross-checks agreeing, criteria stated in
+advance — is scripted in `docs/phase5-strix-runbook.md`.
+
 ## Layout
 
 ```
 aacl/
-  core/          WorkloadSpec, BackendProfile, execution types
+  core/          WorkloadSpec, BackendProfile, execution types, failure
+                 classes, the executor
   planner/       candidate generation, scoring, plan assembly + explanation
   policy/        the independent policy gate (rules + engine)
-  backends/      backend contract (async handles) + CPU reference backend
-  optimization/  transformation services (quantization — Phase 4)
+  backends/      backend contract (async handles), CPU reference backend,
+                 GPU backend (torch, lazily imported), discovery/
+                 registration, and the dispatching router
+  optimization/  the transformation service (int8 quantization, calibration
+                 owned by the service) + measured quality (drift vs a
+                 named reference)
   telemetry/     event metrics + JSONL recorder + receipt stubs
-  models/        model registry and artifact identity
+  models/        model registry, artifact identity, reliability, the cache,
+                 the trained iris model and its embedded dataset
   api/           Runtime + POST /infer
 prove.py         runs the tests and regenerates evidence/ (venv required)
-test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1 and
-                 Phase 2 tests (one Phase 1 test adapted, reason in place)
+phase5_demo.py   Phase 5 demo: discovered profiles, the fixed request
+                 set, CPU/GPU cross-checks, an honest PASS/PARTIAL/FAIL
+phase5_diff_audit.py
+                 the leak test made mechanical: diff vs the Phase 4
+                 commit, failing outside the Phase 5 allow-list
+train_iris.py    retrains the Phase 4 model and verifies the committed
+                 weights reproduce exactly
+test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1, Phase 2,
+                 Phase 3, Phase 4, and Phase 5 tests (a few earlier tests
+                 adapted where later phases genuinely changed behavior,
+                 reasons in place)
 ```
 
 ## Run the proof
@@ -86,5 +184,8 @@ python3 -m venv .venv
 .venv/bin/python prove.py
 ```
 
-Standard library only. No installation, model download, credentials, or
-network service required.
+The runtime core is standard library only. No installation, model
+download, credentials, or network service required. The one exception
+is the GPU backend (`aacl/backends/gpu.py`), which imports PyTorch
+lazily and optionally: on a machine without torch — or without a
+device — it simply never exists, and the proof runs exactly as above.

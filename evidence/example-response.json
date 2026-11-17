@@ -13,10 +13,52 @@
     },
     "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
     "reason": "STATIC_PRECISION_PREFERENCE_NO_TARGETS_DECLARED",
-    "explanation": "Selected cpu-python/fp64 for linear-demo-v1 (artifact f33ee16f5cbf\u2026): no latency, memory, or cost targets declared, so there is no target pressure to score; selection follows the standing precision preference \u2014 a preference, not a measurement. Workload declares no latency/memory/cost targets; optimize_for=latency. No quality reference declared \u2014 quality unmeasured.",
+    "explanation": "Selected cpu-python/fp64 for linear-demo-v1 (artifact f33ee16f5cbf\u2026): no latency, memory, or cost targets declared, so there is no target pressure to score; selection follows the standing precision preference \u2014 a preference, not a measurement. Workload declares no latency/memory/cost targets; optimize_for=latency. Quality contributes no pressure and no score: quality unmeasured \u2014 no reference.",
     "estimated_latency_ms": 0.021,
     "estimated_memory_mb": 0.004176,
-    "estimated_cost": 2.1e-05
+    "estimated_cost": 2.1e-05,
+    "ranked": [
+      {
+        "candidate": {
+          "backend": "cpu-python",
+          "precision": "fp64",
+          "local": true,
+          "preference_rank": 0
+        },
+        "estimate": {
+          "estimated_latency_ms": 0.021,
+          "estimated_memory_mb": 0.004176,
+          "estimated_cost": 2.1e-05
+        },
+        "artifact": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
+        "pressures": [],
+        "worst_pressure": null,
+        "binding_dimension": null,
+        "downgraded": false,
+        "drift": null
+      },
+      {
+        "candidate": {
+          "backend": "cpu-python",
+          "precision": "fp32",
+          "local": true,
+          "preference_rank": 1
+        },
+        "estimate": {
+          "estimated_latency_ms": 0.013,
+          "estimated_memory_mb": 0.004136,
+          "estimated_cost": 1.3e-05
+        },
+        "artifact": "772d00d21d552afd8a679ceb3291ed2605db5d2091a3b67fa59d7c3a70620e67",
+        "pressures": [],
+        "worst_pressure": null,
+        "binding_dimension": null,
+        "downgraded": false,
+        "drift": null
+      }
+    ],
+    "model_id": "linear-demo-v1",
+    "quality_drift": null
   },
   "candidates": [
     {
@@ -39,29 +81,53 @@
     "runtime": "3.12.3",
     "precisions": [
       "fp32",
-      "fp64"
+      "fp64",
+      "int8"
     ],
     "local": true,
     "total_memory_bytes": 8319897600,
-    "available_memory_bytes": 512278528,
+    "available_memory_bytes": 507691008,
     "max_cache_bytes": 2079974400
   },
   "metrics": {
-    "request_id": "8eac6347-056e-4bb9-ab08-2fb77dcd3562",
+    "request_id": "133482b6-296b-4426-a503-db10f0b0c088",
     "success": true,
     "fallback": false,
-    "init_ms": 0.004967,
-    "load_ms": 0.187062,
+    "init_ms": 0.006179,
+    "load_ms": 0.215363,
     "model_id": "linear-demo-v1",
     "plan_id": "ceb756cf0dbea9e4",
     "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
     "backend": "cpu-python",
     "precision": "fp64",
-    "inference_ms": 0.050706,
-    "runtime_ms_excluding_telemetry_write": 0.302605
+    "inference_ms": 0.082403,
+    "attempts": [
+      {
+        "backend": "cpu-python",
+        "precision": "fp64",
+        "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
+        "outcome": "succeeded",
+        "failure_class": null,
+        "detail": "",
+        "attempt_ms": 0.043556
+      }
+    ],
+    "runtime_ms_excluding_telemetry_write": 0.398718
   },
+  "attempts": [
+    {
+      "backend": "cpu-python",
+      "precision": "fp64",
+      "artifact_id": "f33ee16f5cbf2d0a458f3cf6730c3b52530af972a1ebd25874cbfceefc5f1351",
+      "outcome": "succeeded",
+      "failure_class": null,
+      "detail": "",
+      "attempt_ms": 0.043556
+    }
+  ],
+  "fallback": false,
   "receipt": {
-    "receipt_id": "f81a199204c4169b",
+    "receipt_id": "5ae009e21e607946",
     "status": "unsigned",
     "signature": null,
     "plan_id": "ceb756cf0dbea9e4",

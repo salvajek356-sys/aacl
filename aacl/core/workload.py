@@ -11,16 +11,23 @@ outside the supported set is a typed refusal, not a quiet default.
 
 Phase 2 puts the declared budgets to work: the planner scores candidates by
 target pressure against the latency, memory, and cost figures declared
-here, and `optimize_for` orders its tie-breaks. The one field that still
-does not steer anything is `quality_reference`: quality is unmeasured until
-Phase 4, so a declared reference is carried and named, and contributes no
-score — the plan's explanation says so rather than letting a declared
-reference look honored when it was only noted.
+here, and `optimize_for` orders its tie-breaks.
+
+Phase 4 makes quality real, and the spec grows the one field that
+requires: `quality_max_drift`, the maximum acceptable *mean score error*
+against the named reference (see optimization/quality.py for why the
+tolerance is on score error and not the label-disagreement rate, which
+is measured and recorded alongside it). A `quality_reference` must now
+name a registered eval set for the requested model — an unknown name is
+a typed refusal, not a note carried forever — and a drift tolerance
+without a reference to measure against is refused for the same reason.
+A second model is installed (iris-logreg-v1, trained), so `model_id`
+is checked against the registry rather than against one fixed id.
 """
 import math
 from dataclasses import dataclass
 
-from ..models.registry import MODEL
+from ..models.registry import MODELS, QUALITY_REFERENCES
 
 
 class Rejection(ValueError):
@@ -38,7 +45,7 @@ OPTIMIZE_FOR = ("latency", "quality", "cost", "memory")
 
 _FIELDS = {"model_id", "input", "allowed_precisions", "local_only",
            "latency_target_ms", "memory_limit_mb", "cost_budget",
-           "optimize_for", "quality_reference"}
+           "optimize_for", "quality_reference", "quality_max_drift"}
 
 
 def _number(raw, field, minimum, exclusive):
@@ -66,6 +73,7 @@ class WorkloadSpec:
     cost_budget: float = None
     optimize_for: str = "latency"
     quality_reference: str = None
+    quality_max_drift: float = None
 
     @classmethod
     def parse(cls, raw):
@@ -73,8 +81,10 @@ class WorkloadSpec:
             raise Rejection("INVALID_REQUEST", "Expected a JSON object")
         if set(raw) - _FIELDS:
             raise Rejection("INVALID_REQUEST", "Unknown fields; unsupported constraints are never ignored")
-        if raw.get("model_id", MODEL["id"]) != MODEL["id"]:
-            raise Rejection("UNKNOWN_MODEL", "Only linear-demo-v1 is installed")
+        model_id = raw.get("model_id", "linear-demo-v1")
+        if model_id not in MODELS:
+            raise Rejection("UNKNOWN_MODEL",
+                            f"Unknown model; installed: {', '.join(sorted(MODELS))}")
         values = raw.get("input")
         if not isinstance(values, list) or len(values) != 4 or any(
             type(x) not in (int, float) or not math.isfinite(x) or abs(x) > 1000 for x in values
@@ -102,5 +112,17 @@ class WorkloadSpec:
                 raise Rejection("INVALID_REQUEST",
                                 "quality_reference must be a non-empty string naming a reference")
             quality_reference = quality_reference.strip()
-        return cls(MODEL["id"], tuple(values), tuple(precisions), local,
-                   latency, memory, cost, optimize_for, quality_reference)
+            if QUALITY_REFERENCES.get(quality_reference) != model_id:
+                raise Rejection(
+                    "UNKNOWN_QUALITY_REFERENCE",
+                    f"No quality reference '{quality_reference}' is registered "
+                    f"for model {model_id}; a reference names an eval set that "
+                    f"exists, or the request is refused")
+        quality_max_drift = _number(raw, "quality_max_drift", 0, exclusive=False)
+        if quality_max_drift is not None and quality_reference is None:
+            raise Rejection(
+                "INVALID_REQUEST",
+                "quality_max_drift requires a quality_reference to measure against")
+        return cls(model_id, tuple(values), tuple(precisions), local,
+                   latency, memory, cost, optimize_for, quality_reference,
+                   quality_max_drift)

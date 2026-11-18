@@ -81,3 +81,20 @@ this was the toolchain's example, not ACCL code — discovery
 still does not probe for the NPU, and no ACCL model has run on
 it. An NPU backend remains a decision to scope, not a fact to
 record.
+
+## Addendum (2026-11-17, session 6.7C) — repeatability
+
+The unmodified example ran five consecutive times under the
+raised limit: 5/5 PASS, each exit 0 (evidence directory
+vector-add-verify-6.7c.ziStlsmu; per-run logs hashed in the
+session record). The paired control — the identical command
+without the memlock raise — failed with exit 1, and the failure
+stage is classifiable from its traceback: tensor construction →
+acquire_device() → pyxrt.device(index). The failure sits in the
+XRT/device layer, at device acquisition, before any compilation
+or execution. Under the interpretation fixed in advance, that
+supports dependence on the NPU runtime; it is not, by itself,
+proof of physical execution, and the record does not claim it
+as such. Remaining before any ACCL integration (Tony's gate):
+the scale sweep (6.7D) and the controlled-input independent
+comparison (6.7E).

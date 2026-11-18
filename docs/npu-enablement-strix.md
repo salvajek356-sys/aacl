@@ -67,3 +67,17 @@ on it. The standing next step, when it is taken, is the IRON
 vector-addition example — it JIT-compiles, executes on the
 device, and verifies itself against NumPy — the NPU's equivalent
 of the GPU's first dispatched kernel.
+
+## Addendum (2026-11-17, session 6.7B) — first compiled program
+
+The standing next step above has been taken. The upstream
+vector-addition example (INT32, 32 elements, source SHA-256
+d73c5d17…, unmodified) was compiled from its IRON Python source
+and executed on the device under the clean configuration of
+session 6.7A; the example's own comparison against NumPy
+reported PASS and the process exited 0 (execution log SHA-256
+c4624494…). The boundary that remains is the one that matters:
+this was the toolchain's example, not ACCL code — discovery
+still does not probe for the NPU, and no ACCL model has run on
+it. An NPU backend remains a decision to scope, not a fact to
+record.

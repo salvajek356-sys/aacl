@@ -98,3 +98,60 @@ proof of physical execution, and the record does not claim it
 as such. Remaining before any ACCL integration (Tony's gate):
 the scale sweep (6.7D) and the controlled-input independent
 comparison (6.7E).
+
+## Addendum (2026-11-18, sessions 6.7D and 6.7E) — scale, controlled inputs, gate closed
+
+These two sessions were run by Muse over SSH, at Tony's
+direction, under a narrow passwordless rule he granted for the
+purpose (prlimit with exactly the 256 MiB memlock value used
+throughout this track, wrapping runuser to his own account;
+nothing runs as root). The scripts were the ones prepared for
+the sessions in advance; the example and both repositories are
+unchanged, as in every prior session.
+
+6.7D, the scale sweep: the unmodified example ran at n = 32,
+256, 1024, 4096, 16384, 65536, 262144, and 1048576, each size in
+its own process with its own timeout — 8/8 PASS, exit 0, no
+failing size in the swept range. Wall time per size was
+0.50–0.67 s and is labeled compile-inclusive; it is dominated
+by process startup and JIT work, not kernel time. (The
+non-verbose logs are exactly "PASS!\n", six bytes, so their
+identical hashes are expected, not anomalous.) A verbose
+spot-check at n = 1048576 showed real inputs, correct sums in
+the printed window, and the example's full-vector PASS.
+Evidence directory vector-add-sweep-6.7d.1CqUNMAy; sweep
+summary SHA-256 806a42ca….
+
+6.7E, the controlled-input comparison: the session opened with
+its API gate. iron.tensor passes an ndarray and device through
+to the tensor factory, and the probe recorded the active
+tensor class as aie.utils.hostruntime.xrtruntime.tensor.
+XRTTensor — the XRT-backed class, not the CPU-only fallback
+the factory can silently substitute when XRT cannot be probed.
+The harness then imported the unmodified example's own kernel
+and called it with fixed tensors of its own construction,
+saving and hashing the inputs before any device work, with the
+verdict resting on the harness's own NumPy comparison: zeros,
+sequential, negatives, large-in-range, and a seeded random
+case at 4096 elements — all exact, zero mismatches, the
+example's assert_pass concurring as second opinion in every
+case. An exploratory int32-overflow case also matched NumPy's
+wrapping arithmetic exactly; it is recorded, not counted. The
+paired control ran the seeded case without the memlock raise
+on hash-identical inputs and failed with exit 1 at the 64 MiB
+locked mmap (EAGAIN) — the XRT/device layer under the
+interpretation fixed in advance: it supports dependence on
+the NPU runtime and is not, by itself, proof of physical
+execution. Evidence directory controlled-verify-6.7e.
+nPorGPj9.
+
+With 6.7D and 6.7E, every item on the verification gate fixed
+before integration is satisfied: execution of the unmodified
+example (6.7B), repeatability (6.7C), the runtime-dependency
+control (6.7C, 6.7E), scale (6.7D), independent controlled-input
+correctness (6.7E), and hashed, reproducible artifacts
+throughout. The boundary that remains is unchanged and is the
+point of the gate: no ACCL code has touched the NPU. An
+isolated backend prototype exposing only validated operations
+(Tony's 6.7F) is now the next decision, not a fact recorded
+here.

@@ -194,6 +194,25 @@ run reported a hollow pass from the wrong one. The session, its
 criteria stated in advance, and dated addenda recording all of
 this are in `docs/phase5-strix-runbook.md`.
 
+**Phase 7 complete (2026-11-18) — Execution Receipts.** ACCL's
+defining contribution, built as a separate self-contained package
+in `phase7/` (standard library only): a strict execution contract,
+an artifact-bound receipt, and an independent verifier that
+recomputes the result with its own arithmetic and reports contract
+binding, computation, artifact integrity, and execution provenance
+as separate findings under a fail-closed decision table. Three
+architecture decisions govern it — independent computation (the
+verifier never shares the executor's arithmetic), overflow rejected
+(strict signed-int32, no wraparound), and decoupled verdicts
+(overall PASS is evidence acceptance, never execution
+authentication; provenance is INDETERMINATE in every report). The
+frozen specification is `docs/execution-receipt-spec-v0.1.md`, the
+decisions are `docs/verification-architecture-decisions-2026-11-18.md`,
+and the dated record — three implementations, the coupling defect
+found by audit and decided against, validation on two machines
+with byte-identical evidence — is `docs/phase7-execution-receipts.md`.
+Run it: `cd phase7 && bash run_demo.sh`.
+
 ## Layout
 
 ```
@@ -224,6 +243,12 @@ test_aacl.py     the v0.1 proof's tests, unmodified, plus Phase 1, Phase 2,
                  Phase 3, Phase 4, and Phase 5 tests (a few earlier tests
                  adapted where later phases genuinely changed behavior,
                  reasons in place)
+phase7/          Phase 7 — Execution Receipts: the self-contained final
+                 package (contracts, receipts, independent verifier),
+                 its specification, tests, and one-command demonstration
+docs/            the reader's guide; the frozen Execution Receipt
+                 Specification v0.1; the verification-architecture
+                 decisions; the Phase 7 record; the NPU enablement record
 ```
 
 ## Run the proof

@@ -1,0 +1,1 @@
+{"contract_id":"vector-add-001","inputs":{"a":[1,2,3,4],"b":[10,20,30,40]},"operation":"vector_add_int32","requirements":{"output_dtype":"int32","output_length":4,"verification":"exact"},"schema":"accl.execution-contract.v0.1"}
